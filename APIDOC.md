@@ -757,7 +757,10 @@ GET /
 | `DB_USER` | `postgres` | PostgreSQL user |
 | `DB_PASSWORD` | `postgres` | PostgreSQL password |
 | `DB_NAME` | `whatsapp_gateway` | PostgreSQL database |
-| `REDIS_URL` | `redis://localhost:6379` | Redis URL |
+| `REDIS_HOST` | `localhost` | Redis host |
+| `REDIS_PORT` | `6379` | Redis port |
+| `REDIS_PASSWORD` | - | Redis password |
+| `REDIS_DB` | `0` | Redis database index |
 | `DATA_DIR` | `./data` | Direktori auth state |
 | `MSG_MIN_DELAY` | `3000` | Delay minimal antar pesan (ms) |
 | `MSG_MAX_DELAY` | `5000` | Delay maksimal antar pesan (ms) |

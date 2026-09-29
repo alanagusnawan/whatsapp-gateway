@@ -53,7 +53,10 @@ docker run -p 3000:3000 -e API_KEY=your-key whatsapp-gateway
 | `WA_ENGINE` | `baileys` | Engine: `baileys` atau `wwjs` |
 | `API_KEY` | - | API key untuk auth |
 | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/whatsapp_gateway` | PostgreSQL connection string |
-| `REDIS_URL` | `redis://localhost:6379` | Redis URL |
+| `REDIS_HOST` | `localhost` | Redis host |
+| `REDIS_PORT` | `6379` | Redis port |
+| `REDIS_PASSWORD` | - | Redis password |
+| `REDIS_DB` | `0` | Redis database index |
 | `DATA_DIR` | `./data` | Direktori penyimpanan auth state |
 | `LOG_LEVEL` | `info` | Log level |
 | `WEBHOOK_TIMEOUT` | `5000` | Webhook timeout (ms) |

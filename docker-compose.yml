@@ -15,7 +15,10 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=whatsapp_gateway
-      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
       - DATA_DIR=/app/data
       - MSG_MIN_DELAY=3000
       - MSG_MAX_DELAY=5000

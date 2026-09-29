@@ -14,7 +14,13 @@ export function getRedis(): Redis {
 export function initRedis(): Redis {
   if (redis) return redis
 
-  redis = new Redis(config.redis.url, {
+  const { host, port, password, db } = config.redis
+
+  redis = new Redis({
+    host,
+    port,
+    password,
+    db,
     maxRetriesPerRequest: 3,
     retryStrategy(times) {
       if (times > 3) {
@@ -26,7 +32,7 @@ export function initRedis(): Redis {
   })
 
   redis.on("connect", () => {
-    logger.info("Redis connected")
+    logger.info({ host, port, db }, "Redis connected")
   })
 
   redis.on("error", (err) => {

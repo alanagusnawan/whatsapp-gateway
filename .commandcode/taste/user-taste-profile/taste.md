@@ -1,0 +1,16 @@
+# User Taste Profile
+- Communicates in Indonesian (Bahasa Indonesia); respond in the same language. Confidence: 0.9
+- When stuck on persistent infrastructure issues, prefers pragmatic component replacement over prolonged debugging ("ganti saja"). Confidence: 0.7
+- Prefers database connection strings configured via environment variables rather than hardcoded config. Confidence: 0.85
+- Prefers individual database env vars (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME) over a single DATABASE_URL connection string. Confidence: 0.85
+- Prioritizes WhatsApp TOS compliance and account safety over features; willing to remove functionality entirely (e.g. blast messaging) if it risks getting banned. Confidence: 0.9
+- Wants all incoming HTTP requests logged with method, path, status code, and duration (e.g. `GET /session 200 9ms`). Confidence: 0.85
+- Uses n8n for workflow automation; wants API integrations to be n8n-compatible (proper HTTP status codes, structured JSON responses, webhook-triggerable). Confidence: 0.85
+- Prefers keeping local/backend services private and never directly exposed to the internet; wants a public-facing intermediary (like n8n) to act as a proxy/gateway that receives all external requests and forwards them to localhost. Security through network isolation is a priority. Confidence: 0.85
+- Wants defensive pre-condition checks before irreversible operations (e.g., verify phone number is registered on WhatsApp before sending a message). Confidence: 0.85
+- Provides specific library API code snippets as implementation guidance rather than abstract descriptions. Confidence: 0.8
+- Shares official library documentation pages for the assistant to cross-reference against existing code and apply best practices; expects the assistant to proactively audit existing code against the docs and fix any deviations. Confidence: 0.85
+- Prefers consolidated single-file configurations over multiple split files; dislikes unnecessary file proliferation ("satu file aja jangan banyak file"). Confidence: 0.85
+- Wants all WhatsApp data (contacts, chats, messages) fully persisted to database, not just kept in memory; history sync on connect is expected behavior. Confidence: 0.85
+- Prefers Redis caching layer in front of database for frequently-read data (contacts, chats) with sensible TTLs; graceful fallback to DB if Redis is unavailable. Confidence: 0.8
+- Wants Baileys engine to use the `sock.ev.process()` event-driven pattern for handling all events (connection, messages, history sync, group updates) rather than individual `.on()` listeners. Confidence: 0.8

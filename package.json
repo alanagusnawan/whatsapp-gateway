@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.2",
     "@whiskeysockets/baileys": "^7.0.0-rc14",
     "elysia": "latest",
     "ioredis": "^6.0.0",

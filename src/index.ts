@@ -17,7 +17,7 @@ import { webhookRoutes } from "./routes/webhook"
 import { eventsRoutes } from "./routes/events"
 import { authPlugin } from "./plugins/auth"
 import { errorPlugin } from "./plugins/error"
-import { corsPlugin } from "./plugins/cors"
+import { cors as corsPlugin } from "./plugins/cors"
 import { logger } from "./utils/logger"
 
 ensureDataDir(config.storage.dataDir)
@@ -38,7 +38,16 @@ sessionManager.on("event", (event) => {
 })
 
 const app = new Elysia()
-  .use(corsPlugin)
+  .use(
+    corsPlugin({
+      origin: true,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "X-API-Key", "Authorization", "Accept"],
+      exposeHeaders: ["Content-Length", "Content-Type"],
+      credentials: false,
+      maxAge: 86400,
+    }),
+  )
   .use(errorPlugin)
   .use(authPlugin)
   .use(sessionRoutes)

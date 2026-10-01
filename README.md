@@ -6,6 +6,7 @@ Backend WhatsApp gateway dengan Elysia.js, mendukung dua engine (Baileys + whats
 
 - **Multi Engine**: Baileys (recommended) atau whatsapp-web.js
 - **Multi Session**: Jalankan beberapa nomor WhatsApp sekaligus
+- **Session Restore**: Session di-restore dari DB saat server start + auto-reconnect
 - **REST API**: Kirim pesan, ambil kontak, kelola session
 - **WebSocket**: Real-time chat masuk & keluar, sinkron di semua device per session
 - **Webhook**: Kirim event ke URL yang dikonfigurasi
@@ -115,6 +116,13 @@ POST /session/:id/disconnect
 # Hapus session
 DELETE /session/:id
 ```
+
+> **Session restore:** Saat server start, semua session di DB di-restore
+> (engine instance dibuat ulang) — endpoint seperti `connect`, `send`, atau
+> `qr` tidak lagi error `Session not found` setelah restart. Session dengan
+> status `connected`/`authenticating`/`qr_pending` yang auth state-nya valid
+> di `DATA_DIR` (creds berisi `me`) otomatis reconnect; session `disconnected`
+> tidak di-auto-reconnect.
 
 ### Message
 

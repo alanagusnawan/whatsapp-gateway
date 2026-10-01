@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "WhatsApp Gateway API",
-    "description": "REST API untuk WhatsApp Gateway dengan engine Baileys & whatsapp-web.js. Tersedia juga WebSocket (/ws) untuk sinkronisasi chat masuk & keluar real-time per session.",
+    "description": "REST API untuk WhatsApp Gateway dengan engine Baileys & whatsapp-web.js. Tersedia juga WebSocket (/ws) untuk sinkronisasi chat masuk & keluar real-time per session. Session di-restore dari database saat server start dengan auto-reconnect untuk session aktif.",
     "version": "1.0.0"
   },
   "servers": [
@@ -373,7 +373,8 @@
           "200": {
             "description": "Success"
           }
-        }
+        },
+        "description": "List session dari database. Saat server start, session di-restore dari DB (engine instance dibuat ulang) — session tidak hilang setelah restart."
       },
       "post": {
         "tags": [
@@ -480,7 +481,8 @@
           "200": {
             "description": "QR code"
           }
-        }
+        },
+        "description": "Dapatkan QR code. QR hanya ada setelah connect dipanggil dan session belum punya auth state."
       }
     },
     "/session/{id}/pairing": {
@@ -544,7 +546,8 @@
           "200": {
             "description": "Connecting"
           }
-        }
+        },
+        "description": "Connect session. Setelah server restart session tetap tersedia (di-restore dari DB); connect memakai auth state tersimpan di DATA_DIR jika ada, jika tidak QR baru dibuat. Session dengan status connected/authenticating/qr_pending dan auth state valid otomatis reconnect saat server start."
       }
     },
     "/session/{id}/disconnect": {

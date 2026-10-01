@@ -39,6 +39,9 @@ sessionManager.on("event", (event) => {
   })
 })
 
+// Restore engine instances dari DB + auto-reconnect session yang auth state-nya ada
+await sessionManager.restoreSessions()
+
 const app = new Elysia({ adapter: node() })
   .use(
     corsPlugin({

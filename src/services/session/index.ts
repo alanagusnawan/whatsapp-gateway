@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { mkdirSync, rmSync, existsSync } from "node:fs"
+import { mkdirSync, rmSync, existsSync, readdirSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { EventEmitter } from "node:events"
 import { createEngine } from "../../engines/index.js"
@@ -58,6 +58,65 @@ class SessionManager extends EventEmitter {
 
     logger.info({ sessionId: id, name, engine: engineType }, "Session created")
     return session
+  }
+
+  // Restore engine instances dari DB saat server start.
+  // Session metadata memang tersimpan di DB, tapi instance engine (socket WA)
+  // hanya hidup di memory — tanpa restore, semua API return "not found".
+  async restoreSessions(): Promise<void> {
+    const sessions = await sessionStore.getAll()
+    const autoReconnect = new Set(["connected", "authenticating", "qr_pending"])
+
+    for (const session of sessions) {
+      try {
+        const engine = createEngine(session.engine, session.id, config.storage.dataDir)
+        this.engines.set(session.id, engine)
+        this.setupEngineEvents(engine)
+
+        // Auto-reconnect hanya jika auth state valid di disk.
+        // Status "disconnected"/"created"/"error" tidak di-auto-reconnect
+        // (user mungkin sengaja disconnect).
+        if (autoReconnect.has(session.status) && this.hasAuthState(session)) {
+          logger.info(
+            { sessionId: session.id, status: session.status },
+            "Auto-reconnecting restored session"
+          )
+          engine.connect().catch((err) => {
+            logger.error({ err, sessionId: session.id }, "Auto-reconnect failed")
+          })
+        }
+      } catch (err) {
+        logger.error({ err, sessionId: session.id }, "Failed to restore session engine")
+      }
+    }
+
+    logger.info(
+      { total: sessions.length, engines: this.engines.size },
+      "Sessions restored from DB"
+    )
+  }
+
+  private hasAuthState(session: Session): boolean {
+    const dir = resolve(
+      config.storage.dataDir,
+      session.id,
+      session.engine === "baileys" ? "baileys" : "wwjs"
+    )
+    if (session.engine === "baileys") {
+      // creds.json saja tidak cukup — pastikan creds.me terisi
+      // (koneksi yang gagal di tengah jalan meninggalkan creds tanpa me)
+      try {
+        const creds = JSON.parse(readFileSync(resolve(dir, "creds.json"), "utf8"))
+        return !!creds?.me?.id
+      } catch {
+        return false
+      }
+    }
+    try {
+      return readdirSync(dir).length > 0
+    } catch {
+      return false
+    }
   }
 
   private setupEngineEvents(engine: WhatsAppEngine) {

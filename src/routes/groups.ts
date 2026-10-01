@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia"
-import { sessionManager } from "../services/session"
+import { sessionManager } from "../services/session/index.js"
 
 export const groupRoutes = new Elysia({ prefix: "/groups" })
   .post(

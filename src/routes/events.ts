@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
-import { eventBus } from "../events/emitter";
-import { sessionManager } from "../services/session";
+import { eventBus } from "../events/emitter.js";
+import { sessionManager } from "../services/session/index.js";
 
 export const eventsRoutes = new Elysia({ prefix: "/events" })
   .get("/", () => {

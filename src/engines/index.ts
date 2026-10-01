@@ -1,8 +1,8 @@
-import type { WhatsAppEngine, EngineFactory } from "./types"
-import type { EngineType } from "../types"
-import { BaileysEngine } from "./baileys"
-import { WwjsEngine } from "./wwjs"
-import { logger } from "../utils/logger"
+import type { WhatsAppEngine, EngineFactory } from "./types.js"
+import type { EngineType } from "../schemas/index.js"
+import { BaileysEngine } from "./baileys/index.js"
+import { WwjsEngine } from "./wwjs/index.js"
+import { logger } from "../utils/logger.js"
 
 const engines: EngineFactory[] = [
   {
@@ -29,4 +29,4 @@ export function createEngine(
   return factory.create(sessionId, dataDir)
 }
 
-export type { WhatsAppEngine, EngineFactory } from "./types"
+export type { WhatsAppEngine, EngineFactory } from "./types.js"

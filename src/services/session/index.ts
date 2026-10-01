@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto"
 import { mkdirSync, rmSync, existsSync } from "node:fs"
 import { resolve } from "node:path"
 import { EventEmitter } from "node:events"
-import { createEngine } from "../../engines"
-import type { WhatsAppEngine } from "../../engines/types"
-import { sessionStore } from "./store"
-import { config } from "../../config"
+import { createEngine } from "../../engines/index.js"
+import type { WhatsAppEngine } from "../../engines/types.js"
+import { sessionStore } from "./store.js"
+import { config } from "../../config/index.js"
 import type {
   Session,
   EngineType,
@@ -14,8 +14,8 @@ import type {
   Chat,
   GatewayEvent,
   QRCodeData,
-} from "../../types"
-import { logger } from "../../utils/logger"
+} from "../../schemas/index.js"
+import { logger } from "../../utils/logger.js"
 
 class SessionManager extends EventEmitter {
   private engines = new Map<string, WhatsAppEngine>()

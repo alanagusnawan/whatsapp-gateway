@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia"
-import { sessionManager } from "../services/session"
+import { sessionManager } from "../services/session/index.js"
 
 export const privacyRoutes = new Elysia({ prefix: "/privacy" })
   .get("/:sessionId", async ({ params, set }) => {

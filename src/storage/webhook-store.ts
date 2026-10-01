@@ -1,5 +1,5 @@
-import { getDb } from "../storage/postgres"
-import type { WebhookConfig, WebhookEvent } from "../types"
+import { getDb } from "../storage/postgres.js"
+import type { WebhookConfig, WebhookEvent } from "../schemas/index.js"
 import { randomUUID } from "node:crypto"
 
 interface WebhookRow {

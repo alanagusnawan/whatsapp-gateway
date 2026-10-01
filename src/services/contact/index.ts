@@ -1,8 +1,8 @@
-import { sessionManager } from "../session"
-import { contactStore } from "../../storage/contact-store"
-import { chatStore } from "../../storage/chat-store"
-import { cache } from "../../utils/cache"
-import type { Contact, Chat } from "../../types"
+import { sessionManager } from "../session/index.js"
+import { contactStore } from "../../storage/contact-store.js"
+import { chatStore } from "../../storage/chat-store.js"
+import { cache } from "../../utils/cache.js"
+import type { Contact, Chat } from "../../schemas/index.js"
 
 export const contactService = {
   async getContacts(sessionId: string): Promise<Contact[]> {

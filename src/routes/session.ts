@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia"
-import { sessionManager } from "../services/session"
-import type { EngineType } from "../types"
+import { sessionManager } from "../services/session/index.js"
+import type { EngineType } from "../schemas/index.js"
 
 export const sessionRoutes = new Elysia({ prefix: "/session" })
   .post(

@@ -1,6 +1,6 @@
 import postgres from "postgres"
-import { config } from "../config"
-import { logger } from "../utils/logger"
+import { config } from "../config/index.js"
+import { logger } from "../utils/logger.js"
 
 let sql: postgres.Sql | null = null
 

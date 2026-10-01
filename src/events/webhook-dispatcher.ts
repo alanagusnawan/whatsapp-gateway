@@ -1,7 +1,7 @@
-import { webhookStore } from "../storage/webhook-store"
-import type { GatewayEvent, WebhookEvent } from "../types"
-import { logger } from "../utils/logger"
-import { config } from "../config"
+import { webhookStore } from "../storage/webhook-store.js"
+import type { GatewayEvent, WebhookEvent } from "../schemas/index.js"
+import { logger } from "../utils/logger.js"
+import { config } from "../config/index.js"
 import { createHmac } from "node:crypto"
 
 export async function dispatchWebhooks(event: GatewayEvent): Promise<void> {

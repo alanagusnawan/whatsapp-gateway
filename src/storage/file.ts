@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs"
 import { resolve } from "node:path"
-import { logger } from "../utils/logger"
+import { logger } from "../utils/logger.js"
 
 export function ensureDataDir(dataDir: string): void {
   const abs = resolve(dataDir)

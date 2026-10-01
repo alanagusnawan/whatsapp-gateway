@@ -1,5 +1,5 @@
-import { getRedis } from "../storage/redis"
-import { logger } from "./logger"
+import { getRedis } from "../storage/redis.js"
+import { logger } from "./logger.js"
 
 const DEFAULT_TTL = 300 // 5 minutes
 

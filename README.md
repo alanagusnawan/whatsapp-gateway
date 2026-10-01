@@ -15,13 +15,23 @@ Backend WhatsApp gateway dengan Elysia.js, mendukung dua engine (Baileys + whats
 - **API Key Auth**: Autentikasi via header X-API-Key
 - **Docker**: Siap deploy dengan Docker
 
+## Requirements
+
+- **Node.js 20+** (Baileys butuh native WebSocket support — tidak jalan di Bun)
+- PostgreSQL 14+
+- Redis (opsional, untuk cache)
+- Chrome/Chromium (hanya untuk engine `wwjs`)
+
 ## Setup
 
 ### Instalasi Lokal
 
 ```bash
 # Install dependencies
-bun install
+npm install
+
+# Untuk engine wwjs, pastikan Chrome terpasang
+npx puppeteer browsers install chrome
 
 # Copy env
 cp .env.example .env
@@ -29,9 +39,16 @@ cp .env.example .env
 # Edit .env sesuai kebutuhan
 # Pastikan PostgreSQL dan Redis berjalan (atau pakai docker-compose)
 
-# Jalankan development
-bun run dev
+# Development (hot reload)
+npm run dev
+
+# Production
+npm run build && npm start
 ```
+
+> **Catatan runtime:** Baileys membutuhkan WebSocket native Node (`ws.upgrade()`).
+> Bun belum mengimplementasikan ini, sehingga session langsung disconnect
+> sebelum QR sempat dibuat. Karena itu project ini berjalan di Node.js.
 
 ### Docker
 
@@ -180,18 +197,18 @@ GET /events/log?limit=50&offset=0
 
 ```
 src/
-├── index.ts                 # Entry point
+├── index.ts                 # Entry point (Elysia + Node adapter)
 ├── config/                  # Konfigurasi
 ├── engines/                 # WhatsApp engine abstraction
-│   ├── types.ts            # Interface
-│   ├── baileys/            # Baileys implementation
-│   └── wwjs/               # whatsapp-web.js implementation
+│   ├── types.ts             # Interface
+│   ├── baileys/             # Baileys implementation
+│   └── wwjs/                # whatsapp-web.js implementation
 ├── services/                # Business logic
 ├── routes/                  # REST API endpoints
 ├── storage/                 # PostgreSQL, File, Redis
 ├── events/                  # Event bus & webhook dispatcher
 ├── plugins/                 # Auth, error, CORS
-└── types/                   # Type definitions
+└── schemas/                 # Shared type definitions
 ```
 
 ## License

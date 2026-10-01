@@ -5,6 +5,10 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/app/data
+    # Chrome (wwjs engine) allocates large buffers; Docker's default /dev/shm
+    # is only 64MB and Chrome dies with "Fatal process OOM" or silently
+    # disconnects WhatsApp Web without this.
+    shm_size: "1gb"
     environment:
       - PORT=3000
       - HOST=0.0.0.0

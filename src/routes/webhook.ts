@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia"
-import { webhookStore } from "../storage/webhook-store"
-import type { WebhookEvent } from "../types"
+import { webhookStore } from "../storage/webhook-store.js"
+import type { WebhookEvent } from "../schemas/index.js"
 
 export const webhookRoutes = new Elysia({ prefix: "/webhook" })
   .post(

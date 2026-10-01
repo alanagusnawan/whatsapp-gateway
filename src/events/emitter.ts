@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events"
-import type { GatewayEvent } from "../types"
-import { logger } from "../utils/logger"
+import type { GatewayEvent } from "../schemas/index.js"
+import { logger } from "../utils/logger.js"
 
 class EventBus extends EventEmitter {
   private _sseClients = new Set<ReadableStreamDefaultController>()

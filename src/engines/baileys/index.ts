@@ -26,11 +26,11 @@ import type {
   SendMessagePayload,
   QRCodeData,
   SessionStatus,
-} from "../../types"
-import { contactStore } from "../../storage/contact-store"
-import { chatStore } from "../../storage/chat-store"
-import { messageStore } from "../../storage/message-store"
-import { logger } from "../../utils/logger"
+} from "../../schemas/index.js"
+import { contactStore } from "../../storage/contact-store.js"
+import { chatStore } from "../../storage/chat-store.js"
+import { messageStore } from "../../storage/message-store.js"
+import { logger } from "../../utils/logger.js"
 
 const log = pino({ level: "silent" })
 
@@ -86,7 +86,11 @@ export class BaileysEngine extends EventEmitter {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, log),
       },
-      browser: Browsers.macOS("Desktop"),
+      // NOTE: Browsers.macOS("Desktop") is rejected by WhatsApp with a 428
+      // "Connection Terminated" close, which kills the socket before any QR is
+      // emitted. The macOS/Chrome identity connects reliably; history still
+      // arrives through messaging-history.set because syncFullHistory is on.
+      browser: Browsers.macOS("Chrome"),
       syncFullHistory: true,
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,

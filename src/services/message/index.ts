@@ -1,7 +1,7 @@
-import { sessionManager } from "../session"
-import { rateLimiter } from "../../utils/rate-limiter"
-import type { SendMessagePayload } from "../../types"
-import { logger } from "../../utils/logger"
+import { sessionManager } from "../session/index.js"
+import { rateLimiter } from "../../utils/rate-limiter.js"
+import type { SendMessagePayload } from "../../schemas/index.js"
+import { logger } from "../../utils/logger.js"
 
 export const messageService = {
   async send(payload: SendMessagePayload): Promise<{ id: string }> {

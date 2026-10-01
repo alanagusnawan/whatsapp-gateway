@@ -1,5 +1,5 @@
-import { getDb } from "../../storage/postgres"
-import type { Session, EngineType, SessionStatus } from "../../types"
+import { getDb } from "../../storage/postgres.js"
+import type { Session, EngineType, SessionStatus } from "../../schemas/index.js"
 
 interface SessionRow {
   id: string

@@ -1,5 +1,5 @@
 import { Elysia } from "elysia"
-import { config } from "../config"
+import { config } from "../config/index.js"
 
 export const authPlugin = new Elysia()
   .onBeforeHandle(({ request }) => {

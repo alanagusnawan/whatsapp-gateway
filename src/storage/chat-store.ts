@@ -1,5 +1,5 @@
-import { getDb } from "../storage/postgres"
-import type { Chat } from "../types"
+import { getDb } from "../storage/postgres.js"
+import type { Chat } from "../schemas/index.js"
 
 const CHUNK = 500
 

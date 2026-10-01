@@ -7,7 +7,7 @@ import type {
   QRCodeData,
   EngineType,
   SessionStatus,
-} from "../types"
+} from "../schemas/index.js"
 
 export interface EngineEvents {
   qr: (data: QRCodeData) => void

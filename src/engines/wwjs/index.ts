@@ -1,4 +1,6 @@
-import { Client, LocalAuth, MessageMedia, Location } from "whatsapp-web.js"
+// whatsapp-web.js is CommonJS; interop through the default export
+// so named ESM imports resolve under NodeNext.
+import wwebjs from "whatsapp-web.js"
 import { EventEmitter } from "node:events"
 import type {
   Contact,
@@ -6,12 +8,16 @@ import type {
   SendMessagePayload,
   QRCodeData,
   SessionStatus,
-} from "../../types"
-import { logger } from "../../utils/logger"
+} from "../../schemas/index.js"
+import { logger } from "../../utils/logger.js"
+
+const { Client, LocalAuth, MessageMedia, Location } = wwebjs as any
+
+type WwjsClient = InstanceType<typeof Client>
 
 export class WwjsEngine extends EventEmitter {
   readonly engineType = "wwjs" as const
-  private client: Client | null = null
+  private client: WwjsClient | null = null
   private _status: SessionStatus = "created"
   private _qr: string | null = null
   private _phone: string | null = null
@@ -43,21 +49,45 @@ export class WwjsEngine extends EventEmitter {
     this.client = new Client({
       authStrategy: new LocalAuth({ dataPath: this._authDir }),
       puppeteer: {
+        // Puppeteer >= 21 maps `true` to the new headless mode, which runs
+        // without any display server (no X11 / Wayland needed).
         headless: true,
+        // Respect a user-provided binary (e.g. Ubuntu's system Chromium) so the
+        // container does not need to download its own copy of Chrome.
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         args: [
+          // Sandbox is unavailable for root in containers; must be disabled.
           "--no-sandbox",
           "--disable-setuid-sandbox",
+          // /dev/shm is tiny (64MB) in Docker by default — Chrome crashes
+          // without this when WhatsApp Web allocates buffers.
           "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--single-process",
           "--disable-gpu",
+          "--disable-gpu-compositing",
+          "--disable-software-rasterizer",
+          // Headless servers have no compositor / animation budget.
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-features=site-per-process,IsolateOrigins,TranslateUI",
+          "--disable-ipc-flooding-protection",
+          "--disable-accelerated-2d-canvas",
+          "--disable-accelerated-video-decode",
+          // Deterministic font rendering without a fontconfig cache on servers.
+          "--font-render-hinting=none",
+          "--disable-lcd-text",
+          "--no-first-run",
+          "--no-default-browser-check",
+          "--mute-audio",
+          "--hide-scrollbars",
+          "--autoplay-policy=no-user-gesture-required",
+          "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         ],
+        ignoreHTTPSErrors: true,
       },
     })
 
-    this.client.on("qr", (qr) => {
+    this.client.on("qr", (qr: string) => {
       this._status = "qr_pending"
       this._qr = qr
       this.emit("qr", { sessionId: this.sessionId, qr })
@@ -79,17 +109,17 @@ export class WwjsEngine extends EventEmitter {
       this.emit("authenticated", this.sessionId)
     })
 
-    this.client.on("auth_failure", (msg) => {
+    this.client.on("auth_failure", (msg: string) => {
       this._status = "error"
       this.emit("auth_failed", this.sessionId, new Error(msg))
     })
 
-    this.client.on("disconnected", (reason) => {
+    this.client.on("disconnected", (reason: string) => {
       this._status = "disconnected"
       this.emit("disconnected", this.sessionId, reason)
     })
 
-    this.client.on("message", async (msg) => {
+    this.client.on("message", async (msg: any) => {
       this.emit("message_received", this.sessionId, {
         id: msg.id._serialized,
         from: msg.from?.split("@")[0] || "",
@@ -101,7 +131,7 @@ export class WwjsEngine extends EventEmitter {
       })
     })
 
-    this.client.on("message_ack", (msg, ack) => {
+    this.client.on("message_ack", (msg: any, ack: any) => {
       this.emit("message_status", this.sessionId, String(ack))
     })
 
@@ -142,7 +172,7 @@ export class WwjsEngine extends EventEmitter {
     if (payload.quoted) {
       const chat = await this.client.getChatById(payload.quoted.chatJid)
       const msgs = await chat.fetchMessages({ limit: 100 })
-      const quotedMsg = msgs.find((m) => m.id._serialized === payload.quoted!.messageId)
+      const quotedMsg = msgs.find((m: any) => m.id._serialized === payload.quoted!.messageId)
       if (quotedMsg) options.quotedMessageId = quotedMsg.id._serialized
     }
     if (payload.mentions && payload.mentions.length > 0) {
@@ -185,7 +215,7 @@ export class WwjsEngine extends EventEmitter {
 
     // ── Contact (vCard) ──────────────────────────────────────
     if (payload.contacts) {
-      const vcards = payload.contacts.contacts.map((c) => {
+      const vcards = payload.contacts.contacts.map((c: any) => {
         const phone = c.phone.replace(/[^0-9]/g, "")
         return [
           "BEGIN:VCARD",
@@ -422,7 +452,7 @@ export class WwjsEngine extends EventEmitter {
   async fetchBlocklist(): Promise<string[]> {
     if (!this.client) throw new Error("Engine not connected")
     const contacts = await this.client.getBlockedContacts()
-    return contacts.map((c) => c.id._serialized)
+    return contacts.map((c: any) => c.id._serialized)
   }
 
   async fetchPrivacySettings(refresh?: boolean): Promise<any> {
@@ -486,9 +516,8 @@ export class WwjsEngine extends EventEmitter {
 
     const contacts = await this.client.getContacts()
     return contacts
-      .filter((c) => !c.isGroup)
-      .map((c) => ({
-        id: c.id._serialized,
+      .filter((c: any) => !c.isGroup)
+            .map((c: any) => ({        id: c.id._serialized,
         name: c.name || c.pushname,
         pushName: c.pushname,
         phone: c.number || c.id.user,
@@ -500,7 +529,7 @@ export class WwjsEngine extends EventEmitter {
     if (!this.client) throw new Error("Engine not connected")
 
     const chats = await this.client.getChats()
-    return chats.map((c) => ({
+    return chats.map((c: any) => ({
       id: c.id._serialized,
       name: c.name,
       isGroup: c.isGroup,

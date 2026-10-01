@@ -1,23 +1,23 @@
 import { Elysia, t } from "elysia"
-import { sessionManager } from "../services/session"
+import { sessionManager } from "../services/session/index.js"
 
 export const chatRoutes = new Elysia({ prefix: "/chats" })
   .get("/:sessionId", async ({ params }) => {
-    const { chatStore } = await import("../storage/chat-store")
+    const { chatStore } = await import("../storage/chat-store.js")
     const chats = await chatStore.getAll(params.sessionId)
     return { success: true, chats }
   })
   .get("/:sessionId/:chatJid/messages", async ({ params, query }) => {
-    const { messageStore } = await import("../storage/message-store")
+    const { messageStore } = await import("../storage/message-store.js")
     const limit = parseInt((query as any).limit || "50")
     const offset = parseInt((query as any).offset || "0")
     const messages = await messageStore.getByChat(params.sessionId, params.chatJid, limit, offset)
     return { success: true, messages }
   })
   .get("/:sessionId/stats", async ({ params }) => {
-    const { chatStore } = await import("../storage/chat-store")
-    const { contactStore } = await import("../storage/contact-store")
-    const { messageStore } = await import("../storage/message-store")
+    const { chatStore } = await import("../storage/chat-store.js")
+    const { contactStore } = await import("../storage/contact-store.js")
+    const { messageStore } = await import("../storage/message-store.js")
     const chatCount = await chatStore.count(params.sessionId)
     const contactCount = await contactStore.count(params.sessionId)
     const messageCount = await messageStore.count(params.sessionId)

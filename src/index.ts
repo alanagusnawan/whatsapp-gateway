@@ -1,24 +1,25 @@
 import { Elysia } from "elysia"
-import { config } from "./config"
-import { initDb, closeDb } from "./storage/postgres"
-import { ensureDataDir } from "./storage/file"
-import { initRedis } from "./storage/redis"
-import { sessionManager } from "./services/session"
-import { eventBus } from "./events/emitter"
-import { dispatchWebhooks } from "./events/webhook-dispatcher"
-import { sessionRoutes } from "./routes/session"
-import { messageRoutes } from "./routes/message"
-import { contactRoutes } from "./routes/contacts"
-import { chatRoutes } from "./routes/chats"
-import { groupRoutes } from "./routes/groups"
-import { privacyRoutes } from "./routes/privacy"
-import { broadcastRoutes } from "./routes/broadcast"
-import { webhookRoutes } from "./routes/webhook"
-import { eventsRoutes } from "./routes/events"
-import { authPlugin } from "./plugins/auth"
-import { errorPlugin } from "./plugins/error"
-import { cors as corsPlugin } from "./plugins/cors"
-import { logger } from "./utils/logger"
+import { node } from "@elysiajs/node"
+import { config } from "./config/index.js"
+import { initDb, closeDb } from "./storage/postgres.js"
+import { ensureDataDir } from "./storage/file.js"
+import { initRedis, closeRedis } from "./storage/redis.js"
+import { sessionManager } from "./services/session/index.js"
+import { eventBus } from "./events/emitter.js"
+import { dispatchWebhooks } from "./events/webhook-dispatcher.js"
+import { sessionRoutes } from "./routes/session.js"
+import { messageRoutes } from "./routes/message.js"
+import { contactRoutes } from "./routes/contacts.js"
+import { chatRoutes } from "./routes/chats.js"
+import { groupRoutes } from "./routes/groups.js"
+import { privacyRoutes } from "./routes/privacy.js"
+import { broadcastRoutes } from "./routes/broadcast.js"
+import { webhookRoutes } from "./routes/webhook.js"
+import { eventsRoutes } from "./routes/events.js"
+import { authPlugin } from "./plugins/auth.js"
+import { errorPlugin } from "./plugins/error.js"
+import { cors as corsPlugin } from "./plugins/cors.js"
+import { logger } from "./utils/logger.js"
 
 ensureDataDir(config.storage.dataDir)
 
@@ -37,7 +38,7 @@ sessionManager.on("event", (event) => {
   })
 })
 
-const app = new Elysia()
+const app = new Elysia({ adapter: node() })
   .use(
     corsPlugin({
       origin: true,
@@ -64,29 +65,27 @@ const app = new Elysia()
     version: "1.0.0",
     status: "running",
   }))
-
-Bun.serve({
-  port: config.port,
-  async fetch(req) {
-    const start = Date.now()
-    const method = req.method
-    const path = new URL(req.url).pathname
-
-    const res = await app.handle(req)
-
+  .onAfterHandle(({ request, set }) => {
+    const start = Number(request.headers.get("x-request-start") || Date.now())
+    const path = new URL(request.url).pathname
     const duration = Date.now() - start
-    const status = res.status || 200
-    logger.info({ method, path, status, duration: `${duration}ms` }, "request")
+    logger.info(
+      { method: request.method, path, status: set.status || 200, duration: `${duration}ms` },
+      "request",
+    )
+  })
+  .listen({ hostname: config.host, port: config.port })
 
-    return res
-  },
-})
-
-logger.info({ port: config.port }, "WhatsApp Gateway running")
+logger.info(
+  { host: app.server?.hostname, port: app.server?.port },
+  "WhatsApp Gateway running",
+)
 
 const shutdown = async () => {
   logger.info("Shutting down...")
+  app.stop()
   await closeDb()
+  await closeRedis()
   process.exit(0)
 }
 

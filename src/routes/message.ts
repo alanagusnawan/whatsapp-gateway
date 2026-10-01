@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia"
-import { messageService } from "../services/message"
-import { sessionManager } from "../services/session"
+import { messageService } from "../services/message/index.js"
+import { sessionManager } from "../services/session/index.js"
 
 const messageBody = t.Object({
   sessionId: t.String(),

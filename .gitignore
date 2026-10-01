@@ -1,5 +1,6 @@
 # dependencies
 /node_modules
+.commandcode/*
 
 # misc
 .DS_Store

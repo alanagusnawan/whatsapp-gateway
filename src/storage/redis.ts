@@ -1,6 +1,6 @@
-import Redis from "ioredis"
-import { config } from "../config"
-import { logger } from "../utils/logger"
+import { Redis } from "ioredis"
+import { config } from "../config/index.js"
+import { logger } from "../utils/logger.js"
 
 let redis: Redis | null = null
 
@@ -22,7 +22,7 @@ export function initRedis(): Redis {
     password,
     db,
     maxRetriesPerRequest: 3,
-    retryStrategy(times) {
+    retryStrategy(times: number) {
       if (times > 3) {
         logger.warn("Redis max retries reached, disabling cache")
         return null
@@ -35,7 +35,7 @@ export function initRedis(): Redis {
     logger.info({ host, port, db }, "Redis connected")
   })
 
-  redis.on("error", (err) => {
+  redis.on("error", (err: Error) => {
     logger.warn({ err }, "Redis error (cache disabled)")
   })
 

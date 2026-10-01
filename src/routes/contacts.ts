@@ -1,5 +1,5 @@
 import { Elysia } from "elysia"
-import { contactService } from "../services/contact"
+import { contactService } from "../services/contact/index.js"
 
 export const contactRoutes = new Elysia({ prefix: "/contacts" })
   .get("/:sessionId", async ({ params }) => {

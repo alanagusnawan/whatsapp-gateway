@@ -1,4 +1,4 @@
-import { getDb } from "../storage/postgres"
+import { getDb } from "../storage/postgres.js"
 
 const CHUNK = 500
 

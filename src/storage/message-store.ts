@@ -12,6 +12,13 @@ interface MessageRow {
   text: string | null
   timestamp: number
   raw: any | null
+  phone?: string | null
+}
+
+function phoneFromJid(jid: string | null | undefined): string {
+  if (!jid) return ""
+  const user = jid.split("@")[0]?.split(":")[0] || ""
+  return /^[0-9]{8,15}$/.test(user) && !jid.endsWith("@lid") && !jid.endsWith("@g.us") ? user : ""
 }
 
 export const messageStore = {
@@ -78,10 +85,27 @@ export const messageStore = {
 
   async getByChat(sessionId: string, chatJid: string, limit = 50, offset = 0): Promise<MessageRow[]> {
     const sql = getDb()
-    return sql<MessageRow[]>`SELECT * FROM wa_messages
-      WHERE session_id = ${sessionId} AND chat_jid = ${chatJid}
-      ORDER BY timestamp DESC
+    const rows = await sql<MessageRow[]>`SELECT m.*,
+        COALESCE(c.phone, '') AS chat_phone,
+        COALESCE(s.phone, '') AS sender_phone
+      FROM wa_messages m
+      LEFT JOIN wa_chats c ON c.session_id = m.session_id AND c.jid = m.chat_jid
+      LEFT JOIN wa_contacts s ON s.session_id = m.session_id AND s.jid = m.from_jid
+      WHERE m.session_id = ${sessionId} AND m.chat_jid = ${chatJid}
+      ORDER BY m.timestamp DESC
       LIMIT ${limit} OFFSET ${offset}`
+    return rows.map((r: any) => ({
+      session_id: r.session_id,
+      message_id: r.message_id,
+      chat_jid: r.chat_jid,
+      from_jid: r.from_jid,
+      from_me: r.from_me,
+      message_type: r.message_type,
+      text: r.text,
+      timestamp: r.timestamp,
+      raw: r.raw,
+      phone: r.sender_phone || r.chat_phone || phoneFromJid(r.from_jid) || phoneFromJid(r.chat_jid),
+    }))
   },
 
   async count(sessionId: string): Promise<number> {

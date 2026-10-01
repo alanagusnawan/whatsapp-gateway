@@ -20,7 +20,7 @@ export const contactStore = {
     const values = contacts.map((c) => ({
       session_id: sessionId,
       jid: c.id,
-      phone: c.phone,
+      phone: c.phone || "",
       name: c.name || null,
       push_name: c.pushName || null,
       is_group: c.isGroup,
@@ -31,13 +31,28 @@ export const contactStore = {
       const chunk = values.slice(i, i + CHUNK)
       await sql`INSERT INTO wa_contacts ${sql(chunk, 'session_id', 'jid', 'phone', 'name', 'push_name', 'is_group')}
         ON CONFLICT (session_id, jid) DO UPDATE SET
-          name = EXCLUDED.name,
-          push_name = EXCLUDED.push_name,
+          name = COALESCE(EXCLUDED.name, wa_contacts.name),
+          push_name = COALESCE(EXCLUDED.push_name, wa_contacts.push_name),
+          phone = CASE WHEN EXCLUDED.phone <> '' THEN EXCLUDED.phone ELSE wa_contacts.phone END,
           synced_at = NOW()`
       inserted += chunk.length
     }
 
     return inserted
+  },
+
+  async updatePhoneByJid(sessionId: string, jid: string, phone: string): Promise<void> {
+    if (!phone) return
+    const sql = getDb()
+    await sql`UPDATE wa_contacts SET phone = ${phone}, synced_at = NOW()
+      WHERE session_id = ${sessionId} AND jid = ${jid} AND phone = ''`
+  },
+
+  async getLidJidsMissingPhone(sessionId: string): Promise<string[]> {
+    const sql = getDb()
+    const rows = await sql<{ jid: string }[]>`SELECT DISTINCT jid FROM wa_contacts
+      WHERE session_id = ${sessionId} AND phone = '' AND jid LIKE '%@lid'`
+    return rows.map((r) => r.jid)
   },
 
   async getAll(sessionId: string): Promise<Contact[]> {

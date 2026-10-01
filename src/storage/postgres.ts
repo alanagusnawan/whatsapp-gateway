@@ -65,9 +65,12 @@ export async function initDb(): Promise<postgres.Sql> {
     unread_count INTEGER NOT NULL DEFAULT 0,
     last_message_text TEXT,
     last_message_timestamp BIGINT DEFAULT 0,
+    phone TEXT NOT NULL DEFAULT '',
     synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (session_id, jid)
   )`
+
+  await sql`ALTER TABLE wa_chats ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`
 
   await sql`CREATE TABLE IF NOT EXISTS wa_messages (
     session_id TEXT NOT NULL,

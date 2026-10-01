@@ -5,7 +5,9 @@ export const authPlugin = new Elysia()
   .onBeforeHandle(({ request }) => {
     if (!config.apiKey) return
 
-    const apiKey = request.headers.get("X-API-Key")
+    // Header X-API-Key, atau query param (WebSocket/SSE dari browser tidak bisa set header)
+    const url = new URL(request.url)
+    const apiKey = request.headers.get("X-API-Key") || url.searchParams.get("apiKey")
     if (apiKey !== config.apiKey) {
       return new Response(
         JSON.stringify({ success: false, error: "Unauthorized" }),

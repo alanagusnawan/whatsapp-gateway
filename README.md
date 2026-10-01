@@ -7,6 +7,7 @@ Backend WhatsApp gateway dengan Elysia.js, mendukung dua engine (Baileys + whats
 - **Multi Engine**: Baileys (recommended) atau whatsapp-web.js
 - **Multi Session**: Jalankan beberapa nomor WhatsApp sekaligus
 - **REST API**: Kirim pesan, ambil kontak, kelola session
+- **WebSocket**: Real-time chat masuk & keluar, sinkron di semua device per session
 - **Webhook**: Kirim event ke URL yang dikonfigurasi
 - **SSE**: Real-time event stream via Server-Sent Events
 - **PostgreSQL**: Database untuk session & webhook metadata
@@ -69,7 +70,11 @@ docker run -p 3000:3000 -e API_KEY=your-key whatsapp-gateway
 | `HOST` | `0.0.0.0` | Host bind |
 | `WA_ENGINE` | `baileys` | Engine: `baileys` atau `wwjs` |
 | `API_KEY` | - | API key untuk auth |
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/whatsapp_gateway` | PostgreSQL connection string |
+| `DB_HOST` | `localhost` | PostgreSQL host |
+| `DB_PORT` | `5432` | PostgreSQL port |
+| `DB_USER` | `postgres` | PostgreSQL user |
+| `DB_PASSWORD` | `postgres` | PostgreSQL password |
+| `DB_NAME` | `whatsapp_gateway` | PostgreSQL database |
 | `REDIS_HOST` | `localhost` | Redis host |
 | `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_PASSWORD` | - | Redis password |
@@ -78,6 +83,8 @@ docker run -p 3000:3000 -e API_KEY=your-key whatsapp-gateway
 | `LOG_LEVEL` | `info` | Log level |
 | `WEBHOOK_TIMEOUT` | `5000` | Webhook timeout (ms) |
 | `WEBHOOK_RETRIES` | `3` | Webhook retry count |
+
+> `.env` dibaca otomatis saat server start (`process.loadEnvFile()`).
 
 ## API Reference
 
@@ -139,14 +146,22 @@ POST /message/send
 }
 ```
 
-### Contacts
+### Contacts & Chats
 
 ```bash
 # List kontak
 GET /contacts/:sessionId
 
-# List chat
+# List chat (termasuk field phone untuk chat private)
 GET /chats/:sessionId
+
+# Riwayat pesan per chat — tiap pesan menyertakan field `phone`
+# (nomor HP kontak/pengirim, di-resolve dari LID→PN)
+GET /chats/:sessionId/:chatJid/messages?limit=50&offset=0
+
+# Contoh:
+GET /chats/abc123/6281234567890%40s.whatsapp.net/messages?limit=20
+# → { success: true, messages: [{ ..., phone: "6281234567890" }] }
 ```
 
 ### Webhook
@@ -180,6 +195,63 @@ GET /events
 # Mendapat event log
 GET /events/log?limit=50&offset=0
 ```
+
+### WebSocket
+
+Endpoint `/ws` untuk sinkronisasi chat masuk & keluar di semua device
+dengan session yang sama. Setiap koneksi bisa filter per session.
+
+```bash
+# Connect — semua event (atau filter via query param)
+ws://localhost:3000/ws
+ws://localhost:3000/ws?sessionId=abc123
+
+# Dengan API key (browser WS tidak bisa set header, pakai query param)
+ws://localhost:3000/ws?sessionId=abc123&apiKey=your-secret-api-key
+```
+
+Protocol (JSON text frames):
+
+```jsonc
+// Saat connect, server kirim:
+{ "type": "connected", "sessionId": "abc123" }
+
+// Subscribe ke session tertentu (ganti filter saat runtime):
+{ "type": "subscribe", "sessionId": "abc123" }
+// → { "type": "subscribed", "sessionId": "abc123" }
+
+// Kembali terima semua session:
+{ "type": "unsubscribe" }
+// → { "type": "subscribed", "sessionId": null }
+
+// Event gateway diterima langsung (chat masuk & keluar):
+{ "type": "message.received", "sessionId": "abc123", "timestamp": 1712345678901,
+  "data": { "id": "3EB0...", "from": "6281234567890", "phone": "6281234567890",
+            "jid": "6281234567890@s.whatsapp.net", "text": "Halo", "pushName": "Budi", ... } }
+
+{ "type": "message.sent", "sessionId": "abc123", "timestamp": 1712345678901,
+  "data": { "messageId": "3EB0...", "to": "6281234567890", "chatJid": "6281234567890@s.whatsapp.net",
+            "phone": "6281234567890", "text": "Balasan", "mediaType": null } }
+
+{ "type": "message.status", "sessionId": "abc123", "data": { "status": "3" } }
+```
+
+Contoh client (Node):
+
+```js
+import WebSocket from "ws"
+
+const ws = new WebSocket("ws://localhost:3000/ws?sessionId=abc123&apiKey=your-key")
+ws.on("open", () => ws.send(JSON.stringify({ type: "subscribe", sessionId: "abc123" })))
+ws.on("message", (raw) => {
+  const event = JSON.parse(raw)
+  if (event.type === "message.received") console.log("CHAT MASUK:", event.data.phone, event.data.text)
+  if (event.type === "message.sent")     console.log("CHAT KELUAR:", event.data.phone, event.data.text)
+})
+```
+
+> Pesan keluar (via `POST /message/send`) juga di-persist ke DB sehingga
+> riwayat chat lengkap dan konsisten di semua device.
 
 ## Event Types
 

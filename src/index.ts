@@ -16,6 +16,7 @@ import { privacyRoutes } from "./routes/privacy.js"
 import { broadcastRoutes } from "./routes/broadcast.js"
 import { webhookRoutes } from "./routes/webhook.js"
 import { eventsRoutes } from "./routes/events.js"
+import { wsRoutes } from "./routes/ws.js"
 import { authPlugin } from "./plugins/auth.js"
 import { errorPlugin } from "./plugins/error.js"
 import { cors as corsPlugin } from "./plugins/cors.js"
@@ -60,6 +61,7 @@ const app = new Elysia({ adapter: node() })
   .use(broadcastRoutes)
   .use(webhookRoutes)
   .use(eventsRoutes)
+  .use(wsRoutes)
   .get("/", () => ({
     name: "WhatsApp Gateway",
     version: "1.0.0",

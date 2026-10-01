@@ -2,13 +2,20 @@
   "openapi": "3.0.3",
   "info": {
     "title": "WhatsApp Gateway API",
-    "description": "REST API untuk WhatsApp Gateway dengan engine Baileys & whatsapp-web.js",
+    "description": "REST API untuk WhatsApp Gateway dengan engine Baileys & whatsapp-web.js. Tersedia juga WebSocket (/ws) untuk sinkronisasi chat masuk & keluar real-time per session.",
     "version": "1.0.0"
   },
   "servers": [
-    { "url": "http://localhost:3000", "description": "Local development" }
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    }
   ],
-  "security": [{ "apiKey": [] }],
+  "security": [
+    {
+      "apiKey": []
+    }
+  ],
   "components": {
     "securitySchemes": {
       "apiKey": {
@@ -18,260 +25,2752 @@
       }
     },
     "schemas": {
-      "Success": { "type": "object", "properties": { "success": { "type": "boolean" } } },
-      "Error": { "type": "object", "properties": { "success": { "type": "boolean", "enum": [false] }, "error": { "type": "string" } } },
+      "Success": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      },
       "Session": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" }, "name": { "type": "string" }, "engine": { "type": "string", "enum": ["baileys", "wwjs"] },
-          "status": { "type": "string", "enum": ["created", "qr_pending", "authenticating", "connected", "disconnected", "error"] },
-          "phone": { "type": "string" }, "createdAt": { "type": "string" }, "updatedAt": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "engine": {
+            "type": "string",
+            "enum": [
+              "baileys",
+              "wwjs"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "created",
+              "qr_pending",
+              "authenticating",
+              "connected",
+              "disconnected",
+              "error"
+            ]
+          },
+          "phone": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
         }
       },
       "MessageSend": {
         "type": "object",
-        "required": ["sessionId", "to"],
+        "required": [
+          "sessionId",
+          "to"
+        ],
         "properties": {
-          "sessionId": { "type": "string" }, "to": { "type": "string" },
-          "text": { "type": "string" }, "mediaUrl": { "type": "string" },
-          "mediaType": { "type": "string", "enum": ["image", "video", "document", "audio"] },
-          "caption": { "type": "string" },
-          "location": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } },
-          "reaction": { "type": "object", "properties": { "text": { "type": "string" }, "messageId": { "type": "string" } } },
-          "poll": { "type": "object", "properties": { "name": { "type": "string" }, "values": { "type": "array", "items": { "type": "string" } }, "selectableCount": { "type": "number" } } },
-          "contacts": { "type": "object", "properties": { "displayName": { "type": "string" }, "contacts": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "phone": { "type": "string" } } } } } },
-          "forward": { "type": "object", "properties": { "messageId": { "type": "string" }, "chatJid": { "type": "string" } } },
-          "quoted": { "type": "object", "properties": { "messageId": { "type": "string" }, "chatJid": { "type": "string" } } },
-          "mentions": { "type": "array", "items": { "type": "string" } },
-          "disappearingMessages": { "type": "object", "properties": { "enabled": { "type": "boolean" }, "duration": { "type": "number" } } },
-          "ephemeralExpiration": { "type": "number" }
+          "sessionId": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "mediaUrl": {
+            "type": "string"
+          },
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video",
+              "document",
+              "audio"
+            ]
+          },
+          "caption": {
+            "type": "string"
+          },
+          "location": {
+            "type": "object",
+            "properties": {
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              }
+            }
+          },
+          "reaction": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "messageId": {
+                "type": "string"
+              }
+            }
+          },
+          "poll": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "selectableCount": {
+                "type": "number"
+              }
+            }
+          },
+          "contacts": {
+            "type": "object",
+            "properties": {
+              "displayName": {
+                "type": "string"
+              },
+              "contacts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "forward": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string"
+              },
+              "chatJid": {
+                "type": "string"
+              }
+            }
+          },
+          "quoted": {
+            "type": "object",
+            "properties": {
+              "messageId": {
+                "type": "string"
+              },
+              "chatJid": {
+                "type": "string"
+              }
+            }
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "disappearingMessages": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "duration": {
+                "type": "number"
+              }
+            }
+          },
+          "ephemeralExpiration": {
+            "type": "number"
+          }
         }
       },
       "Webhook": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" }, "url": { "type": "string" }, "events": { "type": "array", "items": { "type": "string" } },
-          "secret": { "type": "string" }, "active": { "type": "boolean" }, "createdAt": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "secret": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        }
+      },
+      "Chat": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Chat JID (bisa @s.whatsapp.net, @lid, atau @g.us)"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Nomor HP asli (PN) — kosong jika belum resolve dari LID"
+          },
+          "isGroup": {
+            "type": "boolean"
+          },
+          "lastMessage": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "integer"
+              }
+            }
+          },
+          "unreadCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "message_id": {
+            "type": "string"
+          },
+          "chat_jid": {
+            "type": "string"
+          },
+          "from_jid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "from_me": {
+            "type": "boolean"
+          },
+          "message_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "timestamp": {
+            "type": "integer"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Nomor HP pengirim/kontak chat (di-resolve dari LID→PN atau kolom phone di wa_chats/wa_contacts)"
+          },
+          "raw": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      },
+      "WsEvent": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Tipe event gateway, contoh: message.received, message.sent, message.status, session.qr, session.connected"
+          },
+          "sessionId": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "object",
+            "description": "Payload event — message.received menyertakan phone & jid, message.sent menyertakan chatJid & phone"
+          }
         }
       }
     }
   },
   "paths": {
     "/": {
-      "get": { "tags": ["Health"], "summary": "Health check", "responses": { "200": { "description": "Server running" } } }
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Server running"
+          }
+        }
+      }
     },
     "/session": {
-      "get": { "tags": ["Session"], "summary": "List semua session", "responses": { "200": { "description": "Success" } } },
+      "get": {
+        "tags": [
+          "Session"
+        ],
+        "summary": "List semua session",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
       "post": {
-        "tags": ["Session"], "summary": "Buat session baru",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["name", "engine"], "properties": { "name": { "type": "string" }, "engine": { "type": "string", "enum": ["baileys", "wwjs"] } } } } } },
-        "responses": { "200": { "description": "Session created" } }
+        "tags": [
+          "Session"
+        ],
+        "summary": "Buat session baru",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "engine"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "engine": {
+                    "type": "string",
+                    "enum": [
+                      "baileys",
+                      "wwjs"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session created"
+          }
+        }
       }
     },
     "/session/{id}": {
-      "get": { "tags": ["Session"], "summary": "Detail session", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Success" }, "404": { "description": "Not found" } } },
-      "delete": { "tags": ["Session"], "summary": "Hapus session", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Deleted" } } }
+      "get": {
+        "tags": [
+          "Session"
+        ],
+        "summary": "Detail session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Session"
+        ],
+        "summary": "Hapus session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          }
+        }
+      }
     },
     "/session/{id}/qr": {
-      "get": { "tags": ["Session"], "summary": "Dapatkan QR code", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "QR code" } } }
+      "get": {
+        "tags": [
+          "Session"
+        ],
+        "summary": "Dapatkan QR code",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR code"
+          }
+        }
+      }
     },
     "/session/{id}/pairing": {
       "post": {
-        "tags": ["Session"], "summary": "Request pairing code (tanpa QR)",
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["phone"], "properties": { "phone": { "type": "string" } } } } } },
-        "responses": { "200": { "description": "Pairing code" } }
+        "tags": [
+          "Session"
+        ],
+        "summary": "Request pairing code (tanpa QR)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "phone"
+                ],
+                "properties": {
+                  "phone": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pairing code"
+          }
+        }
       }
     },
     "/session/{id}/connect": {
-      "post": { "tags": ["Session"], "summary": "Connect session", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Connecting" } } }
+      "post": {
+        "tags": [
+          "Session"
+        ],
+        "summary": "Connect session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connecting"
+          }
+        }
+      }
     },
     "/session/{id}/disconnect": {
-      "post": { "tags": ["Session"], "summary": "Disconnect session", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Disconnected" } } }
+      "post": {
+        "tags": [
+          "Session"
+        ],
+        "summary": "Disconnect session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disconnected"
+          }
+        }
+      }
     },
     "/message/check/{sessionId}/{phone}": {
-      "get": { "tags": ["Message"], "summary": "Check nomor WhatsApp", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "phone", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Check result" } } }
+      "get": {
+        "tags": [
+          "Message"
+        ],
+        "summary": "Check nomor WhatsApp",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phone",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Check result"
+          }
+        }
+      }
     },
     "/message/send": {
-      "post": { "tags": ["Message"], "summary": "Kirim pesan", "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageSend" } } } }, "responses": { "200": { "description": "Message sent" }, "400": { "description": "Invalid" }, "429": { "description": "Rate limit" } } }
+      "post": {
+        "tags": [
+          "Message"
+        ],
+        "summary": "Kirim pesan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageSend"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message sent"
+          },
+          "400": {
+            "description": "Invalid"
+          },
+          "429": {
+            "description": "Rate limit"
+          }
+        },
+        "description": "Kirim pesan. Berhasil dikirim → pesan di-persist ke DB (riwayat sinkron di semua device) dan event `message.sent` (berisi chatJid & phone) di-broadcast ke WebSocket/SSE client."
+      }
     },
     "/message/delete": {
-      "post": { "tags": ["Message"], "summary": "Hapus pesan", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid", "messageId"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" }, "messageId": { "type": "string" } } } } } }, "responses": { "200": { "description": "Deleted" } } }
+      "post": {
+        "tags": [
+          "Message"
+        ],
+        "summary": "Hapus pesan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid",
+                  "messageId"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  },
+                  "messageId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          }
+        }
+      }
     },
     "/message/edit": {
-      "post": { "tags": ["Message"], "summary": "Edit pesan (Baileys only)", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid", "messageId", "text"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" }, "messageId": { "type": "string" }, "text": { "type": "string" } } } } } }, "responses": { "200": { "description": "Edited" } } }
+      "post": {
+        "tags": [
+          "Message"
+        ],
+        "summary": "Edit pesan (Baileys only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid",
+                  "messageId",
+                  "text"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  },
+                  "messageId": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Edited"
+          }
+        }
+      }
     },
     "/message/read": {
-      "post": { "tags": ["Message"], "summary": "Mark sebagai read", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid", "messageIds"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" }, "messageIds": { "type": "array", "items": { "type": "string" } } } } } } }, "responses": { "200": { "description": "Marked as read" } } }
+      "post": {
+        "tags": [
+          "Message"
+        ],
+        "summary": "Mark sebagai read",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid",
+                  "messageIds"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  },
+                  "messageIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Marked as read"
+          }
+        }
+      }
     },
     "/message/presence": {
-      "post": { "tags": ["Message"], "summary": "Kirim presence (typing indicator)", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid", "presence"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" }, "presence": { "type": "string", "enum": ["available", "unavailable", "composing", "recording", "paused"] } } } } } }, "responses": { "200": { "description": "Presence updated" } } }
+      "post": {
+        "tags": [
+          "Message"
+        ],
+        "summary": "Kirim presence (typing indicator)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid",
+                  "presence"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  },
+                  "presence": {
+                    "type": "string",
+                    "enum": [
+                      "available",
+                      "unavailable",
+                      "composing",
+                      "recording",
+                      "paused"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presence updated"
+          }
+        }
+      }
     },
     "/message/presence/subscribe": {
-      "post": { "tags": ["Message"], "summary": "Subscribe presence updates", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" } } } } } }, "responses": { "200": { "description": "Subscribed" } } }
+      "post": {
+        "tags": [
+          "Message"
+        ],
+        "summary": "Subscribe presence updates",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscribed"
+          }
+        }
+      }
     },
     "/message/download": {
-      "post": { "tags": ["Message"], "summary": "Download media dari pesan", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "msg"], "properties": { "sessionId": { "type": "string" }, "msg": { "type": "object" }, "type": { "type": "string", "enum": ["buffer", "stream"] } } } } } }, "responses": { "200": { "description": "Media data" } } }
+      "post": {
+        "tags": [
+          "Message"
+        ],
+        "summary": "Download media dari pesan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "msg"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "msg": {
+                    "type": "object"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "buffer",
+                      "stream"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Media data"
+          }
+        }
+      }
     },
     "/contacts/{sessionId}": {
-      "get": { "tags": ["Contacts"], "summary": "List kontak", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Contacts list" } } }
+      "get": {
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "List kontak",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contacts list"
+          }
+        }
+      }
     },
     "/chats/{sessionId}": {
-      "get": { "tags": ["Chats"], "summary": "List chats", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Chats list" } } }
+      "get": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "List chats",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chats list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "chats": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Chat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "List chat. Field `phone` berisi nomor HP asli untuk chat private (resolve dari LID)."
+      }
     },
     "/chats/{sessionId}/{chatJid}/messages": {
-      "get": { "tags": ["Chats"], "summary": "Riwayat pesan per chat", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "chatJid", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "limit", "in": "query", "schema": { "type": "number", "default": 50 } }, { "name": "offset", "in": "query", "schema": { "type": "number", "default": 0 } }], "responses": { "200": { "description": "Messages" } } }
+      "get": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Riwayat pesan per chat",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatJid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Message"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Riwayat pesan per chat. Setiap pesan menyertakan field `phone` (nomor HP pengirim untuk chat group, nomor HP kontak untuk chat private)."
+      }
     },
     "/chats/{sessionId}/stats": {
-      "get": { "tags": ["Chats"], "summary": "Statistik chat", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Stats" } } }
+      "get": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Statistik chat",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stats"
+          }
+        }
+      }
     },
     "/chats/{sessionId}/{chatJid}/profile": {
-      "get": { "tags": ["Chats"], "summary": "Profile picture", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "chatJid", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Profile URL" } } }
+      "get": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Profile picture",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatJid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile URL"
+          }
+        }
+      }
     },
     "/chats/archive": {
-      "post": { "tags": ["Chats"], "summary": "Archive/unarchive chat", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid", "archive"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" }, "archive": { "type": "boolean" } } } } } }, "responses": { "200": { "description": "Archived" } } }
+      "post": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Archive/unarchive chat",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid",
+                  "archive"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  },
+                  "archive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Archived"
+          }
+        }
+      }
     },
     "/chats/mute": {
-      "post": { "tags": ["Chats"], "summary": "Mute/unmute chat", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" }, "durationMs": { "type": "number" } } } } } }, "responses": { "200": { "description": "Muted" } } }
+      "post": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Mute/unmute chat",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  },
+                  "durationMs": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Muted"
+          }
+        }
+      }
     },
     "/chats/pin": {
-      "post": { "tags": ["Chats"], "summary": "Pin/unpin chat", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid", "pin"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" }, "pin": { "type": "boolean" } } } } } }, "responses": { "200": { "description": "Pinned" } } }
+      "post": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Pin/unpin chat",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid",
+                  "pin"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  },
+                  "pin": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pinned"
+          }
+        }
+      }
     },
     "/chats/delete": {
-      "post": { "tags": ["Chats"], "summary": "Hapus chat", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" } } } } } }, "responses": { "200": { "description": "Deleted" } } }
+      "post": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Hapus chat",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          }
+        }
+      }
     },
     "/chats/star": {
-      "post": { "tags": ["Chats"], "summary": "Star/unstar pesan", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "chatJid", "messageId", "fromMe", "star"], "properties": { "sessionId": { "type": "string" }, "chatJid": { "type": "string" }, "messageId": { "type": "string" }, "fromMe": { "type": "boolean" }, "star": { "type": "boolean" } } } } } }, "responses": { "200": { "description": "Starred" } } }
+      "post": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Star/unstar pesan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "chatJid",
+                  "messageId",
+                  "fromMe",
+                  "star"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "chatJid": {
+                    "type": "string"
+                  },
+                  "messageId": {
+                    "type": "string"
+                  },
+                  "fromMe": {
+                    "type": "boolean"
+                  },
+                  "star": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Starred"
+          }
+        }
+      }
     },
     "/chats/profile-name": {
-      "post": { "tags": ["Chats"], "summary": "Update profile name", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "name"], "properties": { "sessionId": { "type": "string" }, "name": { "type": "string" } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Update profile name",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "name"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/chats/profile-status": {
-      "post": { "tags": ["Chats"], "summary": "Update profile status", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "status"], "properties": { "sessionId": { "type": "string" }, "status": { "type": "string" } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Update profile status",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "status"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/chats/fetch-history": {
-      "post": { "tags": ["Chats"], "summary": "Fetch history on-demand", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "count", "oldestMsgKey", "oldestMsgTimestamp"], "properties": { "sessionId": { "type": "string" }, "count": { "type": "number" }, "oldestMsgKey": { "type": "object" }, "oldestMsgTimestamp": { "type": "number" } } } } } }, "responses": { "200": { "description": "History fetched" } } }
+      "post": {
+        "tags": [
+          "Chats"
+        ],
+        "summary": "Fetch history on-demand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "count",
+                  "oldestMsgKey",
+                  "oldestMsgTimestamp"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "count": {
+                    "type": "number"
+                  },
+                  "oldestMsgKey": {
+                    "type": "object"
+                  },
+                  "oldestMsgTimestamp": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "History fetched"
+          }
+        }
+      }
     },
     "/groups/create": {
-      "post": { "tags": ["Groups"], "summary": "Buat grup baru", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "subject", "participants"], "properties": { "sessionId": { "type": "string" }, "subject": { "type": "string" }, "participants": { "type": "array", "items": { "type": "string" } } } } } } }, "responses": { "200": { "description": "Group created" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Buat grup baru",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "subject",
+                  "participants"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "subject": {
+                    "type": "string"
+                  },
+                  "participants": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Group created"
+          }
+        }
+      }
     },
     "/groups/{sessionId}/{jid}/metadata": {
-      "get": { "tags": ["Groups"], "summary": "Group metadata", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "jid", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Metadata" } } }
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Group metadata",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Metadata"
+          }
+        }
+      }
     },
     "/groups/participants": {
       "post": {
-        "tags": ["Groups"], "summary": "Add/Remove/Promote/Demote participants",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid", "participants", "action"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" }, "participants": { "type": "array", "items": { "type": "string" } }, "action": { "type": "string", "enum": ["add", "remove", "promote", "demote"] } } } } } },
-        "responses": { "200": { "description": "Updated" } }
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Add/Remove/Promote/Demote participants",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid",
+                  "participants",
+                  "action"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  },
+                  "participants": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "add",
+                      "remove",
+                      "promote",
+                      "demote"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
       }
     },
     "/groups/subject": {
-      "post": { "tags": ["Groups"], "summary": "Update nama grup", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid", "subject"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" }, "subject": { "type": "string" } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Update nama grup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid",
+                  "subject"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  },
+                  "subject": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/groups/description": {
-      "post": { "tags": ["Groups"], "summary": "Update deskripsi grup", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid", "description"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" }, "description": { "type": "string" } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Update deskripsi grup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid",
+                  "description"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/groups/settings": {
-      "post": { "tags": ["Groups"], "summary": "Update group settings", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid", "setting"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" }, "setting": { "type": "string", "enum": ["announcement", "not_announcement", "locked", "unlocked"] } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Update group settings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid",
+                  "setting"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  },
+                  "setting": {
+                    "type": "string",
+                    "enum": [
+                      "announcement",
+                      "not_announcement",
+                      "locked",
+                      "unlocked"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/groups/leave": {
-      "post": { "tags": ["Groups"], "summary": "Leave grup", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" } } } } } }, "responses": { "200": { "description": "Left" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Leave grup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Left"
+          }
+        }
+      }
     },
     "/groups/{sessionId}/{jid}/invite": {
-      "get": { "tags": ["Groups"], "summary": "Dapatkan invite code", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "jid", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Invite code" } } }
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Dapatkan invite code",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite code"
+          }
+        }
+      }
     },
     "/groups/invite/revoke": {
-      "post": { "tags": ["Groups"], "summary": "Revoke invite code", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" } } } } } }, "responses": { "200": { "description": "New code" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Revoke invite code",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New code"
+          }
+        }
+      }
     },
     "/groups/invite/join": {
-      "post": { "tags": ["Groups"], "summary": "Join grup via invite code", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "code"], "properties": { "sessionId": { "type": "string" }, "code": { "type": "string" } } } } } }, "responses": { "200": { "description": "Joined" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Join grup via invite code",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "code"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Joined"
+          }
+        }
+      }
     },
     "/groups/invite/info/{sessionId}/{code}": {
-      "get": { "tags": ["Groups"], "summary": "Invite info", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "code", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Info" } } }
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Invite info",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Info"
+          }
+        }
+      }
     },
     "/groups/ephemeral": {
-      "post": { "tags": ["Groups"], "summary": "Toggle ephemeral messages", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid", "duration"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" }, "duration": { "type": "number" } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Toggle ephemeral messages",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid",
+                  "duration"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/groups/member-add-mode": {
-      "post": { "tags": ["Groups"], "summary": "Set member add mode", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid", "mode"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" }, "mode": { "type": "string", "enum": ["all_member_add", "admin_add"] } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Set member add mode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid",
+                  "mode"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "all_member_add",
+                      "admin_add"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/groups/{sessionId}/all": {
-      "get": { "tags": ["Groups"], "summary": "Fetch semua grup", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Groups" } } }
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Fetch semua grup",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Groups"
+          }
+        }
+      }
     },
     "/groups/{sessionId}/{jid}/requests": {
-      "get": { "tags": ["Groups"], "summary": "List join requests", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "jid", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Requests" } } }
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "List join requests",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Requests"
+          }
+        }
+      }
     },
     "/groups/requests": {
-      "post": { "tags": ["Groups"], "summary": "Approve/reject join requests", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid", "participants", "action"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" }, "participants": { "type": "array", "items": { "type": "string" } }, "action": { "type": "string", "enum": ["approve", "reject"] } } } } } }, "responses": { "200": { "description": "Processed" } } }
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Approve/reject join requests",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid",
+                  "participants",
+                  "action"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  },
+                  "participants": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "approve",
+                      "reject"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Processed"
+          }
+        }
+      }
     },
     "/broadcast/send": {
-      "post": { "tags": ["Broadcast"], "summary": "Kirim broadcast", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" }, "text": { "type": "string" }, "mediaUrl": { "type": "string" }, "mediaType": { "type": "string" }, "backgroundColor": { "type": "string" }, "font": { "type": "number" } } } } } }, "responses": { "200": { "description": "Sent" } } }
+      "post": {
+        "tags": [
+          "Broadcast"
+        ],
+        "summary": "Kirim broadcast",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "mediaUrl": {
+                    "type": "string"
+                  },
+                  "mediaType": {
+                    "type": "string"
+                  },
+                  "backgroundColor": {
+                    "type": "string"
+                  },
+                  "font": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sent"
+          }
+        }
+      }
     },
     "/broadcast/status": {
-      "post": { "tags": ["Broadcast"], "summary": "Kirim status/stories", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "statusJidList"], "properties": { "sessionId": { "type": "string" }, "statusJidList": { "type": "array", "items": { "type": "string" } }, "text": { "type": "string" }, "mediaUrl": { "type": "string" }, "mediaType": { "type": "string" }, "backgroundColor": { "type": "string" }, "font": { "type": "number" } } } } } }, "responses": { "200": { "description": "Status posted" } } }
+      "post": {
+        "tags": [
+          "Broadcast"
+        ],
+        "summary": "Kirim status/stories",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "statusJidList"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "statusJidList": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "mediaUrl": {
+                    "type": "string"
+                  },
+                  "mediaType": {
+                    "type": "string"
+                  },
+                  "backgroundColor": {
+                    "type": "string"
+                  },
+                  "font": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status posted"
+          }
+        }
+      }
     },
     "/broadcast/info/{sessionId}/{jid}": {
-      "get": { "tags": ["Broadcast"], "summary": "Broadcast list info", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "jid", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Info" } } }
+      "get": {
+        "tags": [
+          "Broadcast"
+        ],
+        "summary": "Broadcast list info",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Info"
+          }
+        }
+      }
     },
     "/privacy/{sessionId}": {
-      "get": { "tags": ["Privacy"], "summary": "Get privacy settings", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Settings" } } }
+      "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Get privacy settings",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings"
+          }
+        }
+      }
     },
     "/privacy/{sessionId}/blocklist": {
-      "get": { "tags": ["Privacy"], "summary": "Get blocklist", "parameters": [{ "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Blocklist" } } }
+      "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Get blocklist",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blocklist"
+          }
+        }
+      }
     },
     "/privacy/block": {
-      "post": { "tags": ["Privacy"], "summary": "Block user", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" } } } } } }, "responses": { "200": { "description": "Blocked" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Block user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Blocked"
+          }
+        }
+      }
     },
     "/privacy/unblock": {
-      "post": { "tags": ["Privacy"], "summary": "Unblock user", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "jid"], "properties": { "sessionId": { "type": "string" }, "jid": { "type": "string" } } } } } }, "responses": { "200": { "description": "Unblocked" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Unblock user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "jid"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "jid": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unblocked"
+          }
+        }
+      }
     },
     "/privacy/last-seen": {
-      "post": { "tags": ["Privacy"], "summary": "Update last seen privacy", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "value"], "properties": { "sessionId": { "type": "string" }, "value": { "type": "string", "enum": ["all", "contacts", "contact_blacklist", "none"] } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Update last seen privacy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "value"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "contacts",
+                      "contact_blacklist",
+                      "none"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/privacy/online": {
-      "post": { "tags": ["Privacy"], "summary": "Update online privacy", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "value"], "properties": { "sessionId": { "type": "string" }, "value": { "type": "string", "enum": ["all", "match_last_seen"] } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Update online privacy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "value"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "match_last_seen"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/privacy/profile-picture": {
-      "post": { "tags": ["Privacy"], "summary": "Update profile picture privacy", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "value"], "properties": { "sessionId": { "type": "string" }, "value": { "type": "string", "enum": ["all", "contacts", "contact_blacklist", "none"] } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Update profile picture privacy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "value"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "contacts",
+                      "contact_blacklist",
+                      "none"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/privacy/status": {
-      "post": { "tags": ["Privacy"], "summary": "Update status privacy", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "value"], "properties": { "sessionId": { "type": "string" }, "value": { "type": "string", "enum": ["all", "contacts", "contact_blacklist", "none"] } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Update status privacy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "value"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "contacts",
+                      "contact_blacklist",
+                      "none"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/privacy/read-receipts": {
-      "post": { "tags": ["Privacy"], "summary": "Update read receipts privacy", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "value"], "properties": { "sessionId": { "type": "string" }, "value": { "type": "string", "enum": ["all", "none"] } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Update read receipts privacy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "value"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "none"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/privacy/groups-add": {
-      "post": { "tags": ["Privacy"], "summary": "Update groups add privacy", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "value"], "properties": { "sessionId": { "type": "string" }, "value": { "type": "string", "enum": ["all", "contacts", "contact_blacklist"] } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Update groups add privacy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "value"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string",
+                    "enum": [
+                      "all",
+                      "contacts",
+                      "contact_blacklist"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/privacy/disappearing-mode": {
-      "post": { "tags": ["Privacy"], "summary": "Update default disappearing mode", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["sessionId", "duration"], "properties": { "sessionId": { "type": "string" }, "duration": { "type": "number" } } } } } }, "responses": { "200": { "description": "Updated" } } }
+      "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Update default disappearing mode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "duration"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
     },
     "/webhook": {
-      "get": { "tags": ["Webhook"], "summary": "List webhooks", "responses": { "200": { "description": "Webhooks" } } },
-      "post": { "tags": ["Webhook"], "summary": "Buat webhook", "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["url", "events"], "properties": { "url": { "type": "string" }, "events": { "type": "array", "items": { "type": "string" } }, "secret": { "type": "string" } } } } } }, "responses": { "200": { "description": "Created" } } }
+      "get": {
+        "tags": [
+          "Webhook"
+        ],
+        "summary": "List webhooks",
+        "responses": {
+          "200": {
+            "description": "Webhooks"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Webhook"
+        ],
+        "summary": "Buat webhook",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url",
+                  "events"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "secret": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created"
+          }
+        }
+      }
     },
     "/webhook/{id}": {
-      "get": { "tags": ["Webhook"], "summary": "Detail webhook", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Webhook" } } },
-      "patch": { "tags": ["Webhook"], "summary": "Update webhook", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "url": { "type": "string" }, "events": { "type": "array", "items": { "type": "string" } }, "active": { "type": "boolean" } } } } } }, "responses": { "200": { "description": "Updated" } } },
-      "delete": { "tags": ["Webhook"], "summary": "Hapus webhook", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Deleted" } } }
+      "get": {
+        "tags": [
+          "Webhook"
+        ],
+        "summary": "Detail webhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Webhook"
+        ],
+        "summary": "Update webhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "active": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Webhook"
+        ],
+        "summary": "Hapus webhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          }
+        }
+      }
     },
     "/events": {
-      "get": { "tags": ["Events"], "summary": "SSE event stream", "responses": { "200": { "description": "Event stream" } } }
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "SSE event stream",
+        "responses": {
+          "200": {
+            "description": "Event stream"
+          }
+        },
+        "description": "SSE event stream. Untuk WebSocket gunakan endpoint /ws."
+      }
     },
     "/events/log": {
-      "get": { "tags": ["Events"], "summary": "Event log", "parameters": [{ "name": "limit", "in": "query", "schema": { "type": "number", "default": 50 } }, { "name": "offset", "in": "query", "schema": { "type": "number", "default": 0 } }], "responses": { "200": { "description": "Events" } } }
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Event log",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Events"
+          }
+        }
+      }
+    },
+    "/ws": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "WebSocket real-time chat sinkron",
+        "description": "Endpoint WebSocket untuk sinkronisasi chat masuk & keluar di semua device dengan session yang sama. Saat connect, server mengirim frame `{\"type\":\"connected\",\"sessionId\":...}`. Klien dapat mengirim `{\"type\":\"subscribe\",\"sessionId\":\"...\"}` atau `{\"type\":\"unsubscribe\"}` untuk mengganti filter session saat runtime. Semua event gateway (message.received, message.sent, message.status, session.*) diteruskan sebagai JSON text frame. Auth: header X-API-Key atau query param `apiKey` (browser WebSocket tidak bisa mengirim header custom).",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": false,
+            "description": "Filter event hanya untuk session ini (opsional)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "apiKey",
+            "in": "query",
+            "required": false,
+            "description": "API key via query param (alternatif header X-API-Key, untuk browser WS)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "WebSocket upgrade berhasil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WsEvent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
     }
   },
   "tags": [
-    { "name": "Health", "description": "Server health check" },
-    { "name": "Session", "description": "WhatsApp session management" },
-    { "name": "Message", "description": "Send, delete, edit, read, presence, download" },
-    { "name": "Contacts", "description": "Contact list" },
-    { "name": "Chats", "description": "Chat management, history, profile, archive, mute, pin" },
-    { "name": "Groups", "description": "Group creation, participants, settings, invites" },
-    { "name": "Broadcast", "description": "Broadcast lists & Status/Stories" },
-    { "name": "Privacy", "description": "Privacy settings, block, last seen, read receipts" },
-    { "name": "Webhook", "description": "Webhook configuration" },
-    { "name": "Events", "description": "SSE stream & event log" }
+    {
+      "name": "Health",
+      "description": "Server health check"
+    },
+    {
+      "name": "Session",
+      "description": "WhatsApp session management"
+    },
+    {
+      "name": "Message",
+      "description": "Send, delete, edit, read, presence, download"
+    },
+    {
+      "name": "Contacts",
+      "description": "Contact list"
+    },
+    {
+      "name": "Chats",
+      "description": "Chat management, history, profile, archive, mute, pin"
+    },
+    {
+      "name": "Groups",
+      "description": "Group creation, participants, settings, invites"
+    },
+    {
+      "name": "Broadcast",
+      "description": "Broadcast lists & Status/Stories"
+    },
+    {
+      "name": "Privacy",
+      "description": "Privacy settings, block, last seen, read receipts"
+    },
+    {
+      "name": "Webhook",
+      "description": "Webhook configuration"
+    },
+    {
+      "name": "Events",
+      "description": "Real-time events: SSE stream, WebSocket (/ws), event log"
+    }
   ]
 }

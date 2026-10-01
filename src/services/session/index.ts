@@ -201,11 +201,22 @@ class SessionManager extends EventEmitter {
     }
     const result = await engine.sendMessage(payload)
 
+    const chatJid = payload.to.includes("@")
+      ? payload.to
+      : `${payload.to.replace(/[^0-9]/g, "")}@s.whatsapp.net`
+
     const event: GatewayEvent = {
       type: "message.sent",
       sessionId: payload.sessionId,
       timestamp: Date.now(),
-      data: { messageId: result.id, to: payload.to },
+      data: {
+        messageId: result.id,
+        to: payload.to,
+        chatJid,
+        phone: payload.to.includes("@") ? undefined : payload.to.replace(/[^0-9]/g, ""),
+        text: payload.text || payload.caption || null,
+        mediaType: payload.mediaType || null,
+      },
     }
     this.logEvent(event)
     this.emit("event", event)

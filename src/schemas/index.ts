@@ -90,6 +90,7 @@ export interface Contact {
 export interface Chat {
   id: string
   name?: string
+  phone?: string
   isGroup: boolean
   lastMessage?: {
     text?: string

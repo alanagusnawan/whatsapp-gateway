@@ -11,6 +11,7 @@ interface ChatRow {
   unread_count: number
   last_message_text: string | null
   last_message_timestamp: number | null
+  phone: string | null
 }
 
 export const chatStore = {
@@ -26,22 +27,38 @@ export const chatStore = {
       unread_count: c.unreadCount || 0,
       last_message_text: c.lastMessage?.text || null,
       last_message_timestamp: c.lastMessage?.timestamp || 0,
+      phone: c.phone || "",
     }))
 
     let inserted = 0
     for (let i = 0; i < values.length; i += CHUNK) {
       const chunk = values.slice(i, i + CHUNK)
-      await sql`INSERT INTO wa_chats ${sql(chunk, 'session_id', 'jid', 'name', 'is_group', 'unread_count', 'last_message_text', 'last_message_timestamp')}
+      await sql`INSERT INTO wa_chats ${sql(chunk, 'session_id', 'jid', 'name', 'is_group', 'unread_count', 'last_message_text', 'last_message_timestamp', 'phone')}
         ON CONFLICT (session_id, jid) DO UPDATE SET
-          name = EXCLUDED.name,
+          name = COALESCE(EXCLUDED.name, wa_chats.name),
           unread_count = EXCLUDED.unread_count,
           last_message_text = COALESCE(EXCLUDED.last_message_text, wa_chats.last_message_text),
           last_message_timestamp = GREATEST(EXCLUDED.last_message_timestamp, wa_chats.last_message_timestamp),
+          phone = CASE WHEN EXCLUDED.phone <> '' THEN EXCLUDED.phone ELSE wa_chats.phone END,
           synced_at = NOW()`
       inserted += chunk.length
     }
 
     return inserted
+  },
+
+  async updatePhone(sessionId: string, jid: string, phone: string): Promise<void> {
+    if (!phone) return
+    const sql = getDb()
+    await sql`UPDATE wa_chats SET phone = ${phone}, synced_at = NOW()
+      WHERE session_id = ${sessionId} AND jid = ${jid} AND phone = ''`
+  },
+
+  async getLidJidsMissingPhone(sessionId: string): Promise<string[]> {
+    const sql = getDb()
+    const rows = await sql<{ jid: string }[]>`SELECT DISTINCT jid FROM wa_chats
+      WHERE session_id = ${sessionId} AND phone = '' AND jid LIKE '%@lid'`
+    return rows.map((r) => r.jid)
   },
 
   async updateLastMessage(sessionId: string, chatJid: string, text: string, timestamp: number): Promise<void> {
@@ -74,6 +91,7 @@ export const chatStore = {
     return rows.map((r) => ({
       id: r.jid,
       name: r.name || undefined,
+      phone: r.phone || undefined,
       isGroup: r.is_group,
       lastMessage: r.last_message_text
         ? { text: r.last_message_text, timestamp: r.last_message_timestamp || 0 }

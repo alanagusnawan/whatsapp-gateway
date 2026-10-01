@@ -22,9 +22,10 @@ function phoneFromJid(jid: string | null | undefined): string {
 }
 
 export const messageStore = {
-  async upsertBulk(sessionId: string, messages: any[]): Promise<number> {
+  async upsertBulk(sessionId: string, messages: any[], resolveJid?: (jid: string, altJid?: string) => string): Promise<number> {
     if (messages.length === 0) return 0
     const sql = getDb()
+    const canon = (jid: string, alt?: string) => (resolveJid ? resolveJid(jid, alt) : jid)
 
     const values = messages.map((m) => {
       const msg = m.message || {}
@@ -42,11 +43,13 @@ export const messageStore = {
         : msg.locationMessage ? "location"
         : "text"
 
+      const rawChatJid = m.key?.remoteJid || ""
+      const rawFromJid = m.key?.participant || m.key?.remoteJid || ""
       return {
         session_id: sessionId,
         message_id: m.key?.id || "",
-        chat_jid: m.key?.remoteJid || "",
-        from_jid: m.key?.participant || m.key?.remoteJid || "",
+        chat_jid: canon(rawChatJid, m.key?.remoteJidAlt),
+        from_jid: canon(rawFromJid, m.key?.participantAlt || m.key?.remoteJidAlt),
         from_me: !!m.key?.fromMe,
         message_type: type,
         text: text || null,
@@ -112,6 +115,16 @@ export const messageStore = {
     const sql = getDb()
     const [row] = await sql<{ count: number }[]>`SELECT COUNT(*) as count FROM wa_messages WHERE session_id = ${sessionId}`
     return row?.count || 0
+  },
+
+  // Pindahkan pesan dari jid lama (LID) ke jid kanonik (PN)
+  async mergeJid(sessionId: string, fromJid: string, toJid: string): Promise<void> {
+    if (fromJid === toJid) return
+    const sql = getDb()
+    await sql`UPDATE wa_messages SET chat_jid = ${toJid}
+      WHERE session_id = ${sessionId} AND chat_jid = ${fromJid}`
+    await sql`UPDATE wa_messages SET from_jid = ${toJid}
+      WHERE session_id = ${sessionId} AND from_jid = ${fromJid}`
   },
 
   async countByChat(sessionId: string): Promise<{ chat_jid: string; count: number }[]> {

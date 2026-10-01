@@ -172,6 +172,13 @@ GET /chats/abc123/6281234567890%40s.whatsapp.net/messages?limit=20
 # → { success: true, messages: [{ ..., phone: "6281234567890" }] }
 ```
 
+> **Jid kanonik:** Chat 1:1 selalu disimpan dengan jid PN
+> (`<nomor>@s.whatsapp.net`). WhatsApp 7 mengalamatkan pesan via LID
+> (`@lid`); gateway otomatis resolve LID→nomor HP (via `remoteJidAlt`/
+> LID mapping Baileys) sehingga pesan masuk dan keluar menulis ke baris
+> chat yang sama — tidak ada lagi chat terpecah jadi dua. Data lama yang
+> sudah terpecah otomatis di-merge saat session reconnect.
+
 ### Webhook
 
 ```bash

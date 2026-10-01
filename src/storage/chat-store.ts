@@ -54,11 +54,40 @@ export const chatStore = {
       WHERE session_id = ${sessionId} AND jid = ${jid} AND phone = ''`
   },
 
-  async getLidJidsMissingPhone(sessionId: string): Promise<string[]> {
+  async getLidJids(sessionId: string): Promise<string[]> {
     const sql = getDb()
     const rows = await sql<{ jid: string }[]>`SELECT DISTINCT jid FROM wa_chats
-      WHERE session_id = ${sessionId} AND phone = '' AND jid LIKE '%@lid'`
+      WHERE session_id = ${sessionId} AND jid LIKE '%@lid'`
     return rows.map((r) => r.jid)
+  },
+
+  // Merge baris chat LID ke jid kanonik (PN) — satu akun tidak boleh terpecah
+  async mergeJid(sessionId: string, fromJid: string, toJid: string): Promise<void> {
+    if (fromJid === toJid) return
+    const sql = getDb()
+    const [src] = await sql<ChatRow[]>`SELECT * FROM wa_chats WHERE session_id = ${sessionId} AND jid = ${fromJid}`
+    if (!src) return
+    const [dst] = await sql<ChatRow[]>`SELECT * FROM wa_chats WHERE session_id = ${sessionId} AND jid = ${toJid}`
+
+    if (!dst) {
+      await sql`UPDATE wa_chats SET jid = ${toJid}, synced_at = NOW()
+        WHERE session_id = ${sessionId} AND jid = ${fromJid}`
+      return
+    }
+
+    // Kedua baris ada: gabung — pesan terbaru menang, phone/name di-coalesce
+    const srcNewer = (src.last_message_timestamp || 0) >= (dst.last_message_timestamp || 0)
+    const keep = srcNewer ? src : dst
+    const other = srcNewer ? dst : src
+    await sql`UPDATE wa_chats SET
+        name = ${keep.name || other.name || null},
+        phone = ${keep.phone || other.phone || ""},
+        unread_count = ${Math.max(src.unread_count || 0, dst.unread_count || 0)},
+        last_message_text = ${keep.last_message_text || other.last_message_text || null},
+        last_message_timestamp = ${Math.max(src.last_message_timestamp || 0, dst.last_message_timestamp || 0)},
+        synced_at = NOW()
+      WHERE session_id = ${sessionId} AND jid = ${toJid}`
+    await sql`DELETE FROM wa_chats WHERE session_id = ${sessionId} AND jid = ${fromJid}`
   },
 
   async updateLastMessage(sessionId: string, chatJid: string, text: string, timestamp: number): Promise<void> {

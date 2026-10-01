@@ -30,23 +30,10 @@ import type {
 import { contactStore } from "../../storage/contact-store.js"
 import { chatStore } from "../../storage/chat-store.js"
 import { messageStore } from "../../storage/message-store.js"
+import { canonicalJid, getPhoneFromJid, normalizeJid, pnJid, isImmutableJid } from "../../utils/jid.js"
 import { logger } from "../../utils/logger.js"
 
 const log = pino({ level: "silent" })
-
-function getPhoneFromJid(jid: string): string {
-  const decoded = jidDecode(jid)
-  if (!decoded) return ""
-  // For PNJIDs, user is the phone number
-  if (decoded.server === "s.whatsapp.net" || decoded.server === "hosted") {
-    return decoded.user
-  }
-  return ""
-}
-
-function normalizeJid(jid: string): string {
-  return jid.includes("@") ? jidNormalizedUser(jid) : jid
-}
 
 function buildJid(phone: string): string {
   const clean = phone.replace(/[^0-9]/g, "")
@@ -80,49 +67,64 @@ export class BaileysEngine extends EventEmitter {
   getQr(): string | null { return this._qr }
   getPhone(): string | null { return this._phone }
 
-  private async resolvePhone(key: {
-    remoteJid?: string | null
-    remoteJidAlt?: string | null
-    participant?: string | null
-    participantAlt?: string | null
-  }): Promise<string> {
-    const candidates = [key.remoteJidAlt, key.participantAlt, key.remoteJid, key.participant]
-    for (const jid of candidates) {
-      const phone = getPhoneFromJid(jid || "")
-      if (phone) return phone
-    }
-    // LID jid → resolve via Baileys LID↔PN mapping store
-    const lid = [key.participant, key.remoteJid].find((j) => j?.endsWith("@lid"))
-    if (lid && this.sock?.signalRepository?.lidMapping) {
+  // Cache LID→PN per engine (populated dari lid-mapping.update, history sync, resolve)
+  private lidPnCache = new Map<string, string>()
+
+  // Jid kanonik = <phone>@s.whatsapp.net ketika nomor diketahui.
+  // Tanpa ini, incoming (LID) dan outgoing (PN) menulis dua baris chat berbeda.
+  private async resolveCanonicalJid(rawJid: string, altJid?: string | null): Promise<string> {
+    if (!rawJid) return ""
+    if (isImmutableJid(rawJid)) return rawJid
+
+    const direct = canonicalJid(rawJid, altJid, this.lidPnCache)
+    if (!direct.endsWith("@lid")) return direct
+
+    // LID belum ada di cache → tanya Baileys LID mapping store
+    if (this.sock?.signalRepository?.lidMapping) {
       try {
-        const pn = await this.sock.signalRepository.lidMapping.getPNForLID(lid)
-        return getPhoneFromJid(pn || "")
+        const pn = await this.sock.signalRepository.lidMapping.getPNForLID(rawJid)
+        const phone = getPhoneFromJid(pn || "")
+        if (phone) {
+          const canonical = pnJid(phone)
+          this.lidPnCache.set(normalizeJid(rawJid), canonical)
+          return canonical
+        }
       } catch {}
     }
-    return ""
+    return rawJid
   }
 
-  private async backfillLidPhones(): Promise<void> {
+  // Merge baris chat/contact/pesan LID yang sudah ada di DB ke jid PN.
+  // Dipanggil saat connect — memperbaiki data split yang sudah terlanjur tersimpan.
+  private async reconcileJids(): Promise<void> {
     if (!this.sock?.signalRepository?.lidMapping) return
     const lidMapping = this.sock.signalRepository.lidMapping
-    const chatJids = await chatStore.getLidJidsMissingPhone(this.sessionId)
-    const contactJids = await contactStore.getLidJidsMissingPhone(this.sessionId)
-    const jids = [...new Set([...chatJids, ...contactJids])]
+    const jids = [
+      ...new Set([
+        ...(await chatStore.getLidJids(this.sessionId)),
+        ...(await contactStore.getLidJids(this.sessionId)),
+      ]),
+    ]
     if (jids.length === 0) return
     try {
       const mappings = await lidMapping.getPNsForLIDs(jids)
       for (const m of mappings || []) {
         const phone = getPhoneFromJid(m.pn)
         if (!phone) continue
-        const jid = normalizeJid(m.lid)
-        await chatStore.updatePhone(this.sessionId, jid, phone)
-        await contactStore.updatePhoneByJid(this.sessionId, jid, phone)
+        const lid = normalizeJid(m.lid)
+        const canonical = pnJid(phone)
+        this.lidPnCache.set(lid, canonical)
+        await chatStore.mergeJid(this.sessionId, lid, canonical)
+        await messageStore.mergeJid(this.sessionId, lid, canonical)
+        await contactStore.mergeJid(this.sessionId, lid, canonical)
+        await chatStore.updatePhone(this.sessionId, canonical, phone)
+        await contactStore.updatePhoneByJid(this.sessionId, canonical, phone)
       }
       if (mappings?.length) {
-        logger.info({ sessionId: this.sessionId, count: mappings.length }, "LID phone backfill done")
+        logger.info({ sessionId: this.sessionId, count: mappings.length }, "JID reconcile done (LID→PN merge)")
       }
     } catch (err) {
-      logger.debug({ err, sessionId: this.sessionId }, "LID phone backfill failed")
+      logger.debug({ err, sessionId: this.sessionId }, "JID reconcile failed")
     }
   }
 
@@ -159,15 +161,16 @@ export class BaileysEngine extends EventEmitter {
         }
       },
       getMessage: async (key) => {
-        // Fetch from DB for retry/poll support
+        // Fetch from DB for retry/poll support — coba jid kanonik dulu, fallback raw
         try {
-          const rows = await messageStore.getByChat(
-            this.sessionId,
-            key.remoteJid || "",
-            1,
-            0
-          )
-          const msg = rows.find((r) => r.message_id === key.id)
+          const raw = key.remoteJid || ""
+          const canonical = await this.resolveCanonicalJid(raw, (key as any).remoteJidAlt)
+          let rows = await messageStore.getByChat(this.sessionId, canonical, 50, 0)
+          let msg = rows.find((r) => r.message_id === key.id)
+          if (!msg && canonical !== raw) {
+            rows = await messageStore.getByChat(this.sessionId, raw, 50, 0)
+            msg = rows.find((r) => r.message_id === key.id)
+          }
           if (msg?.raw) return msg.raw as proto.IMessage
         } catch {}
         return proto.Message.create({ conversation: "" })
@@ -214,8 +217,8 @@ export class BaileysEngine extends EventEmitter {
             this._phone = getPhoneFromJid(me.id)
           }
           this.emit("connected", this.sessionId)
-          // Backfill nomor HP untuk chat/contact LID yang sudah ada di DB
-          this.backfillLidPhones().catch(() => {})
+          // Merge chat/contact/pesan LID yang terpecah di DB ke jid PN
+          this.reconcileJids().catch(() => {})
         }
       }
 
@@ -230,56 +233,69 @@ export class BaileysEngine extends EventEmitter {
         const { chats, contacts, messages, isLatest, lidPnMappings } = events["messaging-history.set"]
         logger.info({ sessionId: this.sessionId, chats: chats.length, contacts: contacts.length, messages: messages.length, isLatest }, "History sync start")
 
-        // LID↔PN mappings dari history sync
-        const lidPhoneMap = new Map<string, string>()
+        // LID↔PN mappings dari history sync → cache + merge baris lama
+        const lidPnJidMap = new Map<string, string>()
         for (const m of lidPnMappings || []) {
           const phone = getPhoneFromJid(m.pn)
-          if (phone) lidPhoneMap.set(normalizeJid(m.lid), phone)
+          if (!phone) continue
+          const lid = normalizeJid(m.lid)
+          const canonical = pnJid(phone)
+          lidPnJidMap.set(lid, canonical)
+          this.lidPnCache.set(lid, canonical)
+        }
+        for (const [lid, canonical] of lidPnJidMap) {
+          await chatStore.mergeJid(this.sessionId, lid, canonical)
+          await messageStore.mergeJid(this.sessionId, lid, canonical)
+          await contactStore.mergeJid(this.sessionId, lid, canonical)
         }
 
-        // Simpan contacts ke DB
+        // Simpan contacts ke DB (id kanonik = PN ketika nomor diketahui)
         if (contacts.length > 0) {
           const contactList: Contact[] = contacts
           .filter((c: any) => c.id)
-          .map((c: any) => ({
-            id: jidNormalizedUser(c.id),
-            name: c.name || undefined,
-            pushName: c.notify || undefined,
-            phone: getPhoneFromJid(c.phoneNumber || "") || getPhoneFromJid(c.id) || lidPhoneMap.get(jidNormalizedUser(c.id)) || "",
-            isGroup: isJidGroup(c.id) || false,
-          }))
+          .map((c: any) => {
+            const phone = getPhoneFromJid(c.phoneNumber || "") || getPhoneFromJid(c.id) || getPhoneFromJid(lidPnJidMap.get(jidNormalizedUser(c.id)) || "") || ""
+            const id = phone && !isJidGroup(c.id) ? pnJid(phone) : jidNormalizedUser(c.id)
+            return {
+              id,
+              name: c.name || undefined,
+              pushName: c.notify || undefined,
+              phone,
+              isGroup: isJidGroup(c.id) || false,
+            }
+          })
           await contactStore.upsertBulk(this.sessionId, contactList)
           logger.info({ sessionId: this.sessionId, count: contactList.length }, "Contacts synced to DB")
         }
 
-        // Simpan chats ke DB
+        // Simpan chats ke DB (id kanonik = PN — proto Conversation punya pnJid)
         if (chats.length > 0) {
-          const chatList: Chat[] = (chats as any[]).map((c: any) => ({
-            id: c.id,
-            name: c.name || undefined,
-            phone: getPhoneFromJid(c.pnJid || "") || lidPhoneMap.get(jidNormalizedUser(c.id)) || "",
-            isGroup: isJidGroup(c.id) || false,
-            unreadCount: c.unreadCount || 0,
-            lastMessage: c.lastMessage
-              ? { text: c.lastMessage.conversation || "", timestamp: c.lastMessageTimestamp || 0 }
-              : undefined,
-          }))
+          const chatList: Chat[] = (chats as any[]).map((c: any) => {
+            const phone = getPhoneFromJid(c.pnJid || "") || getPhoneFromJid(lidPnJidMap.get(jidNormalizedUser(c.id)) || "") || ""
+            const id = phone && !isJidGroup(c.id) ? pnJid(phone) : c.id
+            return {
+              id,
+              name: c.name || undefined,
+              phone,
+              isGroup: isJidGroup(c.id) || false,
+              unreadCount: c.unreadCount || 0,
+              lastMessage: c.lastMessage
+                ? { text: c.lastMessage.conversation || "", timestamp: c.lastMessageTimestamp || 0 }
+                : undefined,
+            }
+          })
           await chatStore.upsertBulk(this.sessionId, chatList)
           logger.info({ sessionId: this.sessionId, count: chatList.length }, "Chats synced to DB")
         }
 
-        // Simpan messages ke DB
+        // Simpan messages ke DB (chat_jid/from_jid di-kanonikasi)
         if (messages.length > 0) {
-          const count = await messageStore.upsertBulk(this.sessionId, messages)
+          const count = await messageStore.upsertBulk(
+            this.sessionId,
+            messages,
+            (jid, alt) => canonicalJid(jid, alt, this.lidPnCache)
+          )
           logger.info({ sessionId: this.sessionId, count }, "Messages synced to DB")
-        }
-
-        // Backfill phone untuk chat/contact LID yang belum punya nomor
-        if (lidPhoneMap.size > 0) {
-          for (const [lid, phone] of lidPhoneMap) {
-            await chatStore.updatePhone(this.sessionId, lid, phone)
-            await contactStore.updatePhoneByJid(this.sessionId, lid, phone)
-          }
         }
 
         this._historySyncing = false
@@ -291,7 +307,10 @@ export class BaileysEngine extends EventEmitter {
         const { messages, type } = events["messages.upsert"]
         if (type === "notify") {
           for (const msg of messages) {
-            const chatJid = msg.key.remoteJid || ""
+            const rawChatJid = msg.key.remoteJid || ""
+            // Jid kanonik: LID di-resolve ke PN supaya incoming & outgoing
+            // menulis ke baris chat yang sama
+            const chatJid = await this.resolveCanonicalJid(rawChatJid, msg.key.remoteJidAlt)
             const text = msg.message?.conversation
               || (msg.message as any)?.extendedTextMessage?.text
               || (msg.message as any)?.imageMessage?.caption
@@ -307,16 +326,18 @@ export class BaileysEngine extends EventEmitter {
               : (msg.message as any)?.audioMessage ? "audio"
               : null
 
-            // Resolve nomor HP asli (LID → PN) dari message key
-            const phone = await this.resolvePhone(msg.key)
             const isGroup = isJidGroup(chatJid)
-            const senderJid = normalizeJid(msg.key.participant || chatJid)
+            const senderJid = await this.resolveCanonicalJid(
+              msg.key.participant || rawChatJid,
+              msg.key.participantAlt || msg.key.remoteJidAlt
+            )
+            const phone = isGroup ? "" : getPhoneFromJid(chatJid) || getPhoneFromJid(senderJid)
 
             // Simpan message ke DB (selalu, termasuk saat history sync)
             await messageStore.insert(this.sessionId, {
               messageId: msg.key.id || "",
               chatJid,
-              fromJid: msg.key.participant || chatJid,
+              fromJid: senderJid,
               fromMe: !!msg.key.fromMe,
               type: mediaType || "text",
               text,
@@ -332,9 +353,8 @@ export class BaileysEngine extends EventEmitter {
               if (!isGroup) {
                 await chatStore.updatePhone(this.sessionId, chatJid, phone)
               }
-              const contactJid = isGroup ? senderJid : normalizeJid(chatJid)
               await contactStore.upsertBulk(this.sessionId, [{
-                id: contactJid,
+                id: senderJid,
                 phone,
                 pushName: msg.pushName || undefined,
                 isGroup: false,
@@ -356,7 +376,7 @@ export class BaileysEngine extends EventEmitter {
                 id: msg.key.id,
                 from: phone || decoded?.user || chatJid,
                 phone: phone || undefined,
-                jid: isGroup ? senderJid : normalizeJid(chatJid),
+                jid: isGroup ? senderJid : chatJid,
                 text,
                 timestamp: Number(msg.messageTimestamp),
                 pushName: msg.pushName,
@@ -387,16 +407,21 @@ export class BaileysEngine extends EventEmitter {
       if (events["chats.upsert"]) {
         const chats = events["chats.upsert"]
         if (!this._historySyncing && chats.length > 0) {
-          const list: Chat[] = chats.map((c: any) => ({
-            id: c.id,
-            name: c.name || undefined,
-            phone: getPhoneFromJid(c.pnJid || ""),
-            isGroup: isJidGroup(c.id) || false,
-            unreadCount: c.unreadCount || 0,
-            lastMessage: c.lastMessage
-              ? { text: c.lastMessage.conversation || "", timestamp: c.lastMessageTimestamp || 0 }
-              : undefined,
-          }))
+          const list: Chat[] = []
+          for (const raw of chats as any[]) {
+            const canonical = await this.resolveCanonicalJid(raw.id || "", raw.pnJid)
+            const phone = getPhoneFromJid(canonical) || getPhoneFromJid(raw.pnJid || "")
+            list.push({
+              id: canonical,
+              name: raw.name || undefined,
+              phone,
+              isGroup: !!isJidGroup(canonical),
+              unreadCount: raw.unreadCount || 0,
+              lastMessage: raw.lastMessage
+                ? { text: raw.lastMessage.conversation || "", timestamp: raw.lastMessageTimestamp || 0 }
+                : undefined,
+            })
+          }
           await chatStore.upsertBulk(this.sessionId, list)
         }
       }
@@ -405,10 +430,11 @@ export class BaileysEngine extends EventEmitter {
       if (events["chats.update"]) {
         const updates = events["chats.update"]
         if (!this._historySyncing) {
-          for (const u of updates) {
-            if ((u as any).unreadCount !== undefined) {
+          for (const u of updates as any[]) {
+            if (u.unreadCount !== undefined) {
               // Reset unread when user opens chat
-              await chatStore.resetUnread(this.sessionId, (u as any).id)
+              const canonical = await this.resolveCanonicalJid(u.id || "", u.pnJid)
+              await chatStore.resetUnread(this.sessionId, canonical)
             }
           }
         }
@@ -418,15 +444,19 @@ export class BaileysEngine extends EventEmitter {
       if (events["contacts.upsert"]) {
         const contacts = events["contacts.upsert"]
         if (!this._historySyncing && contacts.length > 0) {
-          const list: Contact[] = contacts
-            .filter((c: any) => c.id)
-            .map((c: any) => ({
-              id: jidNormalizedUser(c.id),
+          const list: Contact[] = []
+          for (const c of contacts) {
+            if (!c.id) continue
+            const phone = getPhoneFromJid(c.phoneNumber || "") || getPhoneFromJid(c.id)
+            const id = phone && !isJidGroup(c.id) ? pnJid(phone) : await this.resolveCanonicalJid(c.id, c.phoneNumber)
+            list.push({
+              id,
               name: c.name || undefined,
               pushName: c.notify || undefined,
-              phone: getPhoneFromJid(c.phoneNumber || "") || getPhoneFromJid(c.id),
+              phone,
               isGroup: isJidGroup(c.id) || false,
-            }))
+            })
+          }
           await contactStore.upsertBulk(this.sessionId, list)
         }
       }
@@ -435,15 +465,19 @@ export class BaileysEngine extends EventEmitter {
       if (events["contacts.update"]) {
         const updates = events["contacts.update"]
         if (!this._historySyncing && updates.length > 0) {
-          const list: Contact[] = updates
-            .filter((c: any) => c.id)
-            .map((c: any) => ({
-              id: jidNormalizedUser(c.id),
+          const list: Contact[] = []
+          for (const c of updates) {
+            if (!c.id) continue
+            const phone = getPhoneFromJid(c.phoneNumber || "") || getPhoneFromJid(c.id)
+            const id = phone && !isJidGroup(c.id) ? pnJid(phone) : await this.resolveCanonicalJid(c.id, c.phoneNumber)
+            list.push({
+              id,
               name: c.name || undefined,
               pushName: c.notify || undefined,
-              phone: getPhoneFromJid(c.phoneNumber || "") || getPhoneFromJid(c.id),
+              phone,
               isGroup: isJidGroup(c.id) || false,
-            }))
+            })
+          }
           await contactStore.upsertBulk(this.sessionId, list)
         }
       }
@@ -453,9 +487,15 @@ export class BaileysEngine extends EventEmitter {
         const { lid, pn } = events["lid-mapping.update"]
         const phone = getPhoneFromJid(pn)
         if (phone) {
-          const jid = normalizeJid(lid)
-          await chatStore.updatePhone(this.sessionId, jid, phone)
-          await contactStore.updatePhoneByJid(this.sessionId, jid, phone)
+          const lidJid = normalizeJid(lid)
+          const canonical = pnJid(phone)
+          this.lidPnCache.set(lidJid, canonical)
+          // Merge baris yang tersimpan dengan jid LID ke jid PN
+          await chatStore.mergeJid(this.sessionId, lidJid, canonical)
+          await messageStore.mergeJid(this.sessionId, lidJid, canonical)
+          await contactStore.mergeJid(this.sessionId, lidJid, canonical)
+          await chatStore.updatePhone(this.sessionId, canonical, phone)
+          await contactStore.updatePhoneByJid(this.sessionId, canonical, phone)
         }
       }
 
@@ -909,15 +949,19 @@ export class BaileysEngine extends EventEmitter {
     if (!this.sock) throw new Error("Engine not connected")
     try {
       const contacts = await (this.sock as any).getContacts?.() || []
-      const list: Contact[] = (contacts as any[])
-        .filter((c: any) => c.id && !isJidGroup(c.id))
-        .map((c: any) => ({
-          id: jidNormalizedUser(c.id),
+      const list: Contact[] = []
+      for (const c of contacts as any[]) {
+        if (!c.id || isJidGroup(c.id)) continue
+        const phone = getPhoneFromJid(c.phoneNumber || "") || getPhoneFromJid(c.id)
+        const id = phone ? pnJid(phone) : await this.resolveCanonicalJid(c.id, c.phoneNumber)
+        list.push({
+          id,
           name: c.name,
           pushName: c.notify,
-          phone: getPhoneFromJid(c.phoneNumber || "") || getPhoneFromJid(c.id),
+          phone,
           isGroup: false,
-        }))
+        })
+      }
 
       // Sync ke DB
       await contactStore.upsertBulk(this.sessionId, list)
@@ -933,16 +977,21 @@ export class BaileysEngine extends EventEmitter {
     try {
       const store = (this.sock as any).store
       const chats = store?.chat?.all?.() || []
-      const list: Chat[] = (chats as any[]).map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        phone: getPhoneFromJid(c.pnJid || ""),
-        isGroup: isJidGroup(c.id) || false,
-        lastMessage: c.lastMessage
-          ? { text: c.lastMessage.conversation, timestamp: c.lastMessageTimestamp || 0 }
-          : undefined,
-        unreadCount: c.unreadCount || 0,
-      }))
+      const list: Chat[] = []
+      for (const c of chats as any[]) {
+        const canonical = await this.resolveCanonicalJid(c.id, c.pnJid)
+        const phone = getPhoneFromJid(canonical) || getPhoneFromJid(c.pnJid || "")
+        list.push({
+          id: canonical,
+          name: c.name,
+          phone,
+          isGroup: !!isJidGroup(canonical),
+          lastMessage: c.lastMessage
+            ? { text: c.lastMessage.conversation, timestamp: c.lastMessageTimestamp || 0 }
+            : undefined,
+          unreadCount: c.unreadCount || 0,
+        })
+      }
 
       // Sync ke DB
       await chatStore.upsertBulk(this.sessionId, list)

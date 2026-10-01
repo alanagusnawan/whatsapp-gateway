@@ -48,11 +48,34 @@ export const contactStore = {
       WHERE session_id = ${sessionId} AND jid = ${jid} AND phone = ''`
   },
 
-  async getLidJidsMissingPhone(sessionId: string): Promise<string[]> {
+  async getLidJids(sessionId: string): Promise<string[]> {
     const sql = getDb()
     const rows = await sql<{ jid: string }[]>`SELECT DISTINCT jid FROM wa_contacts
-      WHERE session_id = ${sessionId} AND phone = '' AND jid LIKE '%@lid'`
+      WHERE session_id = ${sessionId} AND jid LIKE '%@lid'`
     return rows.map((r) => r.jid)
+  },
+
+  // Merge baris contact LID ke jid kanonik (PN)
+  async mergeJid(sessionId: string, fromJid: string, toJid: string): Promise<void> {
+    if (fromJid === toJid) return
+    const sql = getDb()
+    const [src] = await sql<ContactRow[]>`SELECT * FROM wa_contacts WHERE session_id = ${sessionId} AND jid = ${fromJid}`
+    if (!src) return
+    const [dst] = await sql<ContactRow[]>`SELECT * FROM wa_contacts WHERE session_id = ${sessionId} AND jid = ${toJid}`
+
+    if (!dst) {
+      await sql`UPDATE wa_contacts SET jid = ${toJid}, synced_at = NOW()
+        WHERE session_id = ${sessionId} AND jid = ${fromJid}`
+      return
+    }
+
+    await sql`UPDATE wa_contacts SET
+        name = ${src.name || dst.name || null},
+        push_name = ${src.push_name || dst.push_name || null},
+        phone = ${src.phone || dst.phone || ""},
+        synced_at = NOW()
+      WHERE session_id = ${sessionId} AND jid = ${toJid}`
+    await sql`DELETE FROM wa_contacts WHERE session_id = ${sessionId} AND jid = ${fromJid}`
   },
 
   async getAll(sessionId: string): Promise<Contact[]> {

@@ -252,7 +252,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Chat JID (bisa @s.whatsapp.net, @lid, atau @g.us)"
+            "description": "Chat JID kanonik: <nomor>@s.whatsapp.net untuk chat private (LID @lid di-resolve otomatis ke nomor HP), @g.us untuk group"
           },
           "name": {
             "type": "string"
@@ -290,7 +290,8 @@
             "type": "string"
           },
           "chat_jid": {
-            "type": "string"
+            "type": "string",
+            "description": "Chat JID kanonik (<nomor>@s.whatsapp.net untuk private) — incoming (LID) dan outgoing (PN) disatukan ke jid yang sama"
           },
           "from_jid": {
             "type": [
@@ -943,7 +944,7 @@
             }
           }
         },
-        "description": "List chat. Field `phone` berisi nomor HP asli untuk chat private (resolve dari LID)."
+        "description": "List chat. Jid kanonik = <nomor>@s.whatsapp.net (LID di-resolve otomatis, tidak ada chat terpecah). Field `phone` berisi nomor HP asli."
       }
     },
     "/chats/{sessionId}/{chatJid}/messages": {
@@ -1009,7 +1010,7 @@
             }
           }
         },
-        "description": "Riwayat pesan per chat. Setiap pesan menyertakan field `phone` (nomor HP pengirim untuk chat group, nomor HP kontak untuk chat private)."
+        "description": "Riwayat pesan per chat (gabungan masuk & keluar di bawah satu jid kanonik). Setiap pesan menyertakan field `phone` (nomor HP pengirim untuk group, nomor HP kontak untuk private)."
       }
     },
     "/chats/{sessionId}/stats": {

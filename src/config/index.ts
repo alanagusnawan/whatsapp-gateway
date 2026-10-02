@@ -40,4 +40,15 @@ export const config = {
     timeout: parseInt(process.env.WEBHOOK_TIMEOUT || "5000"),
     retries: parseInt(process.env.WEBHOOK_RETRIES || "3"),
   },
+
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY || "",
+    model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+    timeoutMs: parseInt(process.env.GEMINI_TIMEOUT_MS || "20000"),
+    maxOutputTokens: parseInt(process.env.GEMINI_MAX_OUTPUT_TOKENS || "1024"),
+  },
+
+  template: {
+    maxPerMinute: parseInt(process.env.TPL_MAX_PER_MINUTE || "10"),
+  },
 } as const

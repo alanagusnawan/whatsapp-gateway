@@ -707,6 +707,148 @@ Header: `X-Webhook-Signature: <hex-hmac-sha256>`
 
 ---
 
+## Template Pesan Chat (AI Generator)
+
+Kelola template pesan chat rumah sakit yang siap dipakai di halaman chat. Template
+dibuat manual atau dihasilkan AI Gemini. Endpoint generate hanya menghasilkan
+draf — penyimpanan dilakukan terpisah (`POST /message-templates`) setelah ditinjau
+dan diedit. Tidak ada pesan WhatsApp/chat yang dikirim otomatis dari proses ini.
+
+Semua endpoint membutuhkan auth seperti endpoint lainnya. Header opsional
+`X-Created-By` mencatat pembuat template (default: `api`).
+
+### Kategori & Gaya Bahasa
+
+```
+GET /message-templates/categories
+```
+
+Response berisi `categories` (10 kategori, dapat dikembangkan di
+`src/services/template/constants.ts`) dan `tones`:
+
+| Value Tone | Label | Deskripsi |
+|------------|-------|-----------|
+| `formal` | Formal | Profesional, sopan, komunikasi resmi rumah sakit |
+| `ramah` | Ramah | Sopan, hangat, empatik |
+| `friendly` | Friendly | Santai, natural, tetap sopan |
+| `singkat` | Singkat | Langsung pada inti informasi |
+
+Kategori: `sapaan_pasien_baru`, `follow_up_customer`, `pemberitahuan_poli_tutup`,
+`pengingat_kunjungan`, `ucapan_terima_kasih`, `survei_kepuasan`, `promo_dan_acara`,
+`layanan_pelanggan`, `informasi_layanan_rs`, `lainnya`.
+
+### List Template (filter & pencarian)
+
+```
+GET /message-templates?q=sapaan&category=sapaan_pasien_baru&tone=formal&active=true&limit=50&offset=0
+```
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `q` | string | Tidak | Kata kunci pencarian di nama/isi template |
+| `category` | string | Tidak | Filter kategori (value slug) |
+| `tone` | string | Tidak | Filter gaya bahasa |
+| `active` | string | Tidak | `true`/`false` — filter status aktif/nonaktif |
+| `limit` | number | Tidak | Default 50, maksimal 100 |
+| `offset` | number | Tidak | Default 0 |
+
+```json
+{ "success": true, "templates": [ /* ... */ ], "total": 1 }
+```
+
+### Detail Template
+
+```
+GET /message-templates/:id
+```
+
+### Buat Template Manual
+
+```
+POST /message-templates
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Ya | Nama template, 3–100 karakter |
+| `category` | string | Ya | Value kategori (lihat `/categories`) |
+| `tone` | string | Ya | `formal` / `ramah` / `friendly` / `singkat` |
+| `content` | string | Ya | Isi pesan, maksimal 2000 karakter. Mendukung placeholder `{{nama_pasien}}`, `{{nama_poli}}`, `{{tanggal_kunjungan}}`, `{{jam_kunjungan}}` |
+| `purpose` | string | Tidak | Tujuan pesan, 3–500 karakter |
+| `additionalInstructions` | string | Tidak | Instruksi tambahan untuk AI, maksimal 500 karakter |
+| `isActive` | boolean | Tidak | Default `true` |
+
+### Update Template
+
+```
+PATCH /message-templates/:id
+```
+
+Semua field opsional (sama seperti create). Kirim `isActive: false` untuk
+menonaktifkan template.
+
+### Hapus Template
+
+```
+DELETE /message-templates/:id
+```
+
+```json
+{ "success": true, "message": "Template pesan dihapus" }
+```
+
+### Duplikasi Template
+
+```
+POST /message-templates/:id/duplicate
+```
+
+Membuat salinan template; nama diakhiri `(Salinan)`.
+
+### Generate Draf via AI Gemini
+
+```
+POST /message-templates/generate
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `category` | string | Ya | Kategori template |
+| `tone` | string | Ya | Gaya bahasa |
+| `purpose` | string | Ya | Tujuan pesan, 3–500 karakter |
+| `additionalInstructions` | string | Tidak | Instruksi tambahan, maksimal 500 karakter |
+| `context` | string | Tidak | Konteks informasi (tanpa data sensitif), maksimal 2000 karakter |
+
+Response sukses:
+
+```json
+{
+  "success": true,
+  "draft": {
+    "name": "Pengingat Kunjungan Besok",
+    "category": "pengingat_kunjungan",
+    "tone": "formal",
+    "content": "Halo {{nama_pasien}}, ..."
+  }
+}
+```
+
+AI menghasilkan pesan berbahasa Indonesia yang siap dipakai, wajib memakai
+placeholder untuk data yang belum tersedia, dan dilarang mengarang jadwal, tarif,
+promo, kebijakan, atau klaim medis. Hasil divalidasi dan distabilkan backend
+(tag HTML dihapus, panjang dibatasi) sebelum dikembalikan sebagai draf.
+
+Error khas endpoint ini:
+
+| HTTP Status | Deskripsi |
+|-------------|-----------|
+| `400` | Input tidak valid (kategori/tone/purpose, dsb.) |
+| `429` | Rate limit AI tercapai (`TPL_MAX_PER_MINUTE`, default 10/menit) |
+| `502` | Kesalahan upstream Gemini (timeout, rate limit Google, respons kosong/tidak valid) |
+| `503` | `GEMINI_API_KEY` belum dikonfigurasi |
+
+---
+
 ## Server-Sent Events (SSE)
 
 ### Subscribe Event Stream
@@ -740,7 +882,8 @@ GET /
 | `404` | Resource tidak ditemukan |
 | `429` | Rate limit |
 | `500` | Internal server error |
-| `503` | Session tidak connected |
+| `502` | Kesalahan upstream AI Gemini (endpoint template) |
+| `503` | Session tidak connected / fitur AI belum dikonfigurasi |
 
 ---
 
@@ -768,3 +911,8 @@ GET /
 | `MSG_MAX_PER_HOUR` | `200` | Max pesan per jam |
 | `WEBHOOK_TIMEOUT` | `5000` | Webhook timeout (ms) |
 | `LOG_LEVEL` | `info` | Log level |
+| `GEMINI_API_KEY` | - | API key Google Gemini untuk AI generator template |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | Model Gemini yang digunakan |
+| `GEMINI_TIMEOUT_MS` | `20000` | Timeout request ke Gemini (ms) |
+| `GEMINI_MAX_OUTPUT_TOKENS` | `1024` | Batas output token Gemini |
+| `TPL_MAX_PER_MINUTE` | `10` | Rate limit endpoint generate AI per menit |

@@ -128,3 +128,46 @@ export interface QRCodeData {
   sessionId: string
   qr: string
 }
+
+export type MessageTemplateCategory =
+  | "sapaan_pasien_baru"
+  | "follow_up_customer"
+  | "pemberitahuan_poli_tutup"
+  | "pengingat_kunjungan"
+  | "ucapan_terima_kasih"
+  | "survei_kepuasan"
+  | "promo_dan_acara"
+  | "layanan_pelanggan"
+  | "informasi_layanan_rs"
+  | "lainnya"
+
+export type MessageTemplateTone = "formal" | "ramah" | "friendly" | "singkat"
+
+export interface MessageTemplate {
+  id: string
+  name: string
+  category: MessageTemplateCategory
+  tone: MessageTemplateTone
+  content: string
+  purpose?: string
+  additionalInstructions?: string
+  isActive: boolean
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MessageTemplateDraft {
+  name: string
+  category: MessageTemplateCategory
+  tone: MessageTemplateTone
+  content: string
+}
+
+export interface GenerateTemplateInput {
+  category: MessageTemplateCategory
+  tone: MessageTemplateTone
+  purpose: string
+  additionalInstructions?: string
+  context?: string
+}

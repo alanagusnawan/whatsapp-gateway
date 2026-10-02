@@ -88,6 +88,23 @@ export async function initDb(): Promise<postgres.Sql> {
   await sql`CREATE INDEX IF NOT EXISTS idx_wa_messages_chat ON wa_messages (session_id, chat_jid, timestamp DESC)`
   await sql`CREATE INDEX IF NOT EXISTS idx_wa_contacts_phone ON wa_contacts (session_id, phone)`
 
+  await sql`CREATE TABLE IF NOT EXISTS message_templates (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    tone TEXT NOT NULL,
+    content TEXT NOT NULL,
+    purpose TEXT,
+    additional_instructions TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_by TEXT NOT NULL DEFAULT 'api',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_message_templates_category ON message_templates (category)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_message_templates_tone ON message_templates (tone)`
+
   logger.info({ host, port, database }, "PostgreSQL connected")
   return sql
 }

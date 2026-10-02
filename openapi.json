@@ -329,6 +329,146 @@
           }
         }
       },
+      "MessageTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "sapaan_pasien_baru",
+              "follow_up_customer",
+              "pemberitahuan_poli_tutup",
+              "pengingat_kunjungan",
+              "ucapan_terima_kasih",
+              "survei_kepuasan",
+              "promo_dan_acara",
+              "layanan_pelanggan",
+              "informasi_layanan_rs",
+              "lainnya"
+            ]
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "formal",
+              "ramah",
+              "friendly",
+              "singkat"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "additionalInstructions": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "MessageTemplateInput": {
+        "type": "object",
+        "required": [
+          "name",
+          "category",
+          "tone",
+          "content"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 100
+          },
+          "category": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "purpose": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "additionalInstructions": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MessageTemplateGenerateInput": {
+        "type": "object",
+        "required": [
+          "category",
+          "tone",
+          "purpose"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          },
+          "additionalInstructions": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "context": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Konteks informasi relevan tanpa data sensitif"
+          }
+        }
+      },
+      "MessageTemplateDraft": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
       "WsEvent": {
         "type": "object",
         "properties": {
@@ -2645,6 +2785,303 @@
         }
       }
     },
+    "/message-templates": {
+      "get": {
+        "tags": [
+          "Template Pesan"
+        ],
+        "summary": "List template pesan (filter & pencarian)",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Kata kunci pencarian di nama/isi template",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "description": "Filter kategori (value slug)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tone",
+            "in": "query",
+            "required": false,
+            "description": "Filter gaya bahasa",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "required": false,
+            "description": "Filter status aktif/nonaktif",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar template + total"
+          },
+          "400": {
+            "description": "Parameter tidak valid"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Template Pesan"
+        ],
+        "summary": "Buat template manual",
+        "parameters": [
+          {
+            "name": "X-Created-By",
+            "in": "header",
+            "required": false,
+            "description": "Identitas pembuat template (default: api)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageTemplateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template dibuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "template": {
+                      "$ref": "#/components/schemas/MessageTemplate"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validasi gagal (pesan error berbahasa Indonesia)"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/message-templates/categories": {
+      "get": {
+        "tags": [
+          "Template Pesan"
+        ],
+        "summary": "Daftar kategori & gaya bahasa template",
+        "responses": {
+          "200": {
+            "description": "Kategori dan tones"
+          }
+        }
+      }
+    },
+    "/message-templates/generate": {
+      "post": {
+        "tags": [
+          "Template Pesan"
+        ],
+        "summary": "Generate draf template via Gemini AI",
+        "description": "Hanya menghasilkan draf untuk ditinjau/diedit sebelum disimpan via POST /message-templates; tidak mengirim pesan WhatsApp. Rate limit TPL_MAX_PER_MINUTE (default 10/menit) → 429. Tanpa GEMINI_API_KEY → 503. Kesalahan upstream Gemini (timeout, rate limit Google, respons kosong/tidak valid) → 502.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageTemplateGenerateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draf template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "draft": {
+                      "$ref": "#/components/schemas/MessageTemplateDraft"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Input tidak valid"
+          },
+          "429": {
+            "description": "Rate limit AI tercapai"
+          },
+          "502": {
+            "description": "Kesalahan upstream Gemini"
+          },
+          "503": {
+            "description": "GEMINI_API_KEY belum dikonfigurasi"
+          }
+        }
+      }
+    },
+    "/message-templates/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Template Pesan"
+        ],
+        "summary": "Detail template",
+        "responses": {
+          "200": {
+            "description": "Template"
+          },
+          "404": {
+            "description": "Tidak ditemukan"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Template Pesan"
+        ],
+        "summary": "Update template (termasuk aktif/nonaktif)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageTemplateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template diperbarui"
+          },
+          "400": {
+            "description": "Validasi gagal"
+          },
+          "404": {
+            "description": "Tidak ditemukan"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Template Pesan"
+        ],
+        "summary": "Hapus template",
+        "responses": {
+          "200": {
+            "description": "Template dihapus"
+          },
+          "404": {
+            "description": "Tidak ditemukan"
+          }
+        }
+      }
+    },
+    "/message-templates/{id}/duplicate": {
+      "post": {
+        "tags": [
+          "Template Pesan"
+        ],
+        "summary": "Duplikasi template",
+        "description": "Membuat salinan template; nama diakhiri (Salinan).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Created-By",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Salinan template dibuat"
+          },
+          "404": {
+            "description": "Tidak ditemukan"
+          }
+        }
+      }
+    },
     "/events": {
       "get": {
         "tags": [
@@ -2771,6 +3208,10 @@
     {
       "name": "Webhook",
       "description": "Webhook configuration"
+    },
+    {
+      "name": "Template Pesan",
+      "description": "Template pesan chat: CRUD, filter/pencarian, duplikasi, dan AI generator Gemini (Google Gemini)"
     },
     {
       "name": "Events",

@@ -84,6 +84,11 @@ docker run -p 3000:3000 -e API_KEY=your-key whatsapp-gateway
 | `LOG_LEVEL` | `info` | Log level |
 | `WEBHOOK_TIMEOUT` | `5000` | Webhook timeout (ms) |
 | `WEBHOOK_RETRIES` | `3` | Webhook retry count |
+| `GEMINI_API_KEY` | - | API key Google Gemini untuk AI generator template pesan |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | Model Gemini yang digunakan |
+| `GEMINI_TIMEOUT_MS` | `20000` | Timeout request ke Gemini (ms) |
+| `GEMINI_MAX_OUTPUT_TOKENS` | `1024` | Batas output token Gemini |
+| `TPL_MAX_PER_MINUTE` | `10` | Rate limit endpoint generate AI per menit |
 
 > `.env` dibaca otomatis saat server start (`process.loadEnvFile()`).
 
@@ -200,6 +205,39 @@ PATCH /webhook/:id
 # Hapus webhook
 DELETE /webhook/:id
 ```
+
+### Template Pesan (AI Generator)
+
+Template pesan chat rumah sakit — dibuat manual atau dihasilkan AI Gemini, siap
+dipilih dan dimasukkan ke kolom penulisan pesan di halaman chat.
+
+```bash
+# Daftar kategori & gaya bahasa (formal, ramah, friendly, singkat)
+GET /message-templates/categories
+
+# List + filter/pencarian (q, category, tone, active, limit, offset)
+GET /message-templates?q=sapaan&category=sapaan_pasien_baru&active=true
+
+# Detail / buat manual / update / hapus / duplikasi
+GET    /message-templates/:id
+POST   /message-templates        { "name", "category", "tone", "content", "purpose"? , "isActive"? }
+PATCH  /message-templates/:id    { "isActive": false, ... }
+DELETE /message-templates/:id
+POST   /message-templates/:id/duplicate
+
+# Generate draf via Gemini (hanya draf — review dulu, lalu simpan via POST)
+POST /message-templates/generate
+{
+  "category": "pengingat_kunjungan",
+  "tone": "formal",
+  "purpose": "Mengingatkan pasien jadwal kunjungan besok",
+  "context": "Kunjungan ke poli umum"
+}
+```
+
+> AI generator butuh `GEMINI_API_KEY` di `.env` (dari https://aistudio.google.com/apikey)
+> lalu restart server. Tanpa key, endpoint generate mengembalikan `503`. Seluruh
+> prompt, output AI, label, dan pesan error fitur ini berbahasa Indonesia.
 
 ### Events (SSE)
 

@@ -15,6 +15,7 @@ import { groupRoutes } from "./routes/groups.js"
 import { privacyRoutes } from "./routes/privacy.js"
 import { broadcastRoutes } from "./routes/broadcast.js"
 import { webhookRoutes } from "./routes/webhook.js"
+import { templateRoutes } from "./routes/template.js"
 import { eventsRoutes } from "./routes/events.js"
 import { wsRoutes } from "./routes/ws.js"
 import { authPlugin } from "./plugins/auth.js"
@@ -47,7 +48,7 @@ const app = new Elysia({ adapter: node() })
     corsPlugin({
       origin: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "X-API-Key", "Authorization", "Accept"],
+      allowedHeaders: ["Content-Type", "X-API-Key", "X-Created-By", "Authorization", "Accept"],
       exposeHeaders: ["Content-Length", "Content-Type"],
       credentials: false,
       maxAge: 86400,
@@ -63,6 +64,7 @@ const app = new Elysia({ adapter: node() })
   .use(privacyRoutes)
   .use(broadcastRoutes)
   .use(webhookRoutes)
+  .use(templateRoutes)
   .use(eventsRoutes)
   .use(wsRoutes)
   .get("/", () => ({

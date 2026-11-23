@@ -1,6 +1,5 @@
 import {
   default as makeWASocket,
-  useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
@@ -30,6 +29,7 @@ import type {
 import { contactStore } from "../../storage/contact-store.js"
 import { chatStore } from "../../storage/chat-store.js"
 import { messageStore } from "../../storage/message-store.js"
+import { usePostgresAuthState } from "../../storage/baileys-auth-store.js"
 import { canonicalJid, getPhoneFromJid, normalizeJid, pnJid, isImmutableJid } from "../../utils/jid.js"
 import { logger } from "../../utils/logger.js"
 
@@ -129,7 +129,7 @@ export class BaileysEngine extends EventEmitter {
   }
 
   async connect(): Promise<void> {
-    const { state, saveCreds } = await useMultiFileAuthState(this._authDir)
+    const { state, saveCreds, clearAuthState } = await usePostgresAuthState(this.sessionId)
     const { version } = await fetchLatestBaileysVersion()
 
     this.sock = makeWASocket({
@@ -204,6 +204,11 @@ export class BaileysEngine extends EventEmitter {
             setTimeout(() => this.connect(), backoff)
           } else {
             this._status = "disconnected"
+            if (code === DisconnectReason.loggedOut) {
+              await clearAuthState().catch((err) => {
+                logger.error({ err, sessionId: this.sessionId }, "Failed to clear auth state on logout")
+              })
+            }
             this.emit("disconnected", this.sessionId, code === DisconnectReason.loggedOut ? "logged_out" : "max_retries")
           }
         }
@@ -311,19 +316,49 @@ export class BaileysEngine extends EventEmitter {
             // Jid kanonik: LID di-resolve ke PN supaya incoming & outgoing
             // menulis ke baris chat yang sama
             const chatJid = await this.resolveCanonicalJid(rawChatJid, msg.key.remoteJidAlt)
-            const text = msg.message?.conversation
+            const pollMsg = (msg.message as any)?.pollCreationMessage
+              || (msg.message as any)?.pollCreationMessageV2
+              || (msg.message as any)?.pollCreationMessageV3
+            const locMsg = (msg.message as any)?.locationMessage || (msg.message as any)?.liveLocationMessage
+            const contactMsg = (msg.message as any)?.contactMessage || (msg.message as any)?.contactsArrayMessage
+            const protocolMsg = (msg.message as any)?.protocolMessage
+
+            let text = msg.message?.conversation
               || (msg.message as any)?.extendedTextMessage?.text
               || (msg.message as any)?.imageMessage?.caption
               || (msg.message as any)?.videoMessage?.caption
+              || (msg.message as any)?.documentMessage?.caption
               || ""
+
+            if (!text && pollMsg) {
+              const pollName = pollMsg.name || "Polling"
+              const options = (pollMsg.options || []).map((o: any, idx: number) => `${idx + 1}. ${o.optionName}`).join("\n")
+              text = `📊 ${pollName}\n${options}`
+            } else if (!text && locMsg) {
+              const lat = locMsg.degreesLatitude
+              const lng = locMsg.degreesLongitude
+              text = `📍 https://maps.google.com/?q=${lat},${lng}`
+            } else if (!text && contactMsg) {
+              const cName = contactMsg.displayName || "Kontak"
+              text = `👤 Kontak: ${cName}`
+            } else if (!text && protocolMsg?.ephemeralExpiration) {
+              text = `⏱️ Pesan sementara diatur ke ${protocolMsg.ephemeralExpiration / 86400} hari`
+            }
+
             const hasMedia = !!(msg.message as any)?.imageMessage
               || !!(msg.message as any)?.videoMessage
               || !!(msg.message as any)?.documentMessage
               || !!(msg.message as any)?.audioMessage
+              || !!(msg.message as any)?.stickerMessage
             const mediaType = (msg.message as any)?.imageMessage ? "image"
               : (msg.message as any)?.videoMessage ? "video"
               : (msg.message as any)?.documentMessage ? "document"
               : (msg.message as any)?.audioMessage ? "audio"
+              : (msg.message as any)?.stickerMessage ? "sticker"
+              : pollMsg ? "poll"
+              : locMsg ? "location"
+              : contactMsg ? "contact"
+              : protocolMsg ? "protocol"
               : null
 
             const isGroup = isJidGroup(chatJid)
@@ -715,8 +750,12 @@ export class BaileysEngine extends EventEmitter {
 
   async markRead(chatJid: string, messageIds: string[]): Promise<void> {
     if (!this.sock) throw new Error("Engine not connected")
-    const keys = messageIds.map((id) => ({ remoteJid: chatJid, id }))
-    await this.sock.readMessages(keys)
+    if (messageIds.length > 0) {
+      const keys = messageIds.map((id) => ({ remoteJid: chatJid, id }))
+      await this.sock.readMessages(keys)
+    }
+    // Sinkronkan unread_count = 0 di database gateway
+    await chatStore.resetUnread(this.sessionId, chatJid)
   }
 
   async sendPresence(chatJid: string, presence: "available" | "unavailable" | "composing" | "recording" | "paused"): Promise<void> {

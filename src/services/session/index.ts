@@ -5,6 +5,7 @@ import { EventEmitter } from "node:events"
 import { createEngine } from "../../engines/index.js"
 import type { WhatsAppEngine } from "../../engines/types.js"
 import { sessionStore } from "./store.js"
+import { deletePostgresAuthState } from "../../storage/baileys-auth-store.js"
 import { config } from "../../config/index.js"
 import type {
   Session,
@@ -220,6 +221,7 @@ class SessionManager extends EventEmitter {
     }
 
     await sessionStore.delete(sessionId)
+    await deletePostgresAuthState(sessionId).catch(() => {})
 
     const sessionDir = resolve(config.storage.dataDir, sessionId)
     if (existsSync(sessionDir)) {

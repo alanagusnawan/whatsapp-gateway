@@ -757,6 +757,106 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/MessageSend"
+              },
+              "examples": {
+                "teks_saja": {
+                  "summary": "Kirim pesan teks saja",
+                  "value": {
+                    "sessionId": "sess_001",
+                    "to": "6281234567890",
+                    "text": "Selamat pagi! Ada yang bisa kami bantu?"
+                  }
+                },
+                "media_caption": {
+                  "summary": "Kirim media dengan caption",
+                  "value": {
+                    "sessionId": "sess_001",
+                    "to": "6281234567890",
+                    "mediaUrl": "https://example.com/produk.jpg",
+                    "mediaType": "image",
+                    "caption": "Katalog produk terbaru kami"
+                  }
+                },
+                "media_saja": {
+                  "summary": "Kirim media tanpa caption",
+                  "value": {
+                    "sessionId": "sess_001",
+                    "to": "6281234567890",
+                    "mediaUrl": "https://example.com/dokumen.pdf",
+                    "mediaType": "document"
+                  }
+                },
+                "location_saja": {
+                  "summary": "Kirim location saja",
+                  "value": {
+                    "sessionId": "sess_001",
+                    "to": "6281234567890",
+                    "location": {
+                      "lat": -6.2088,
+                      "lng": 106.8456
+                    }
+                  }
+                },
+                "reaction": {
+                  "summary": "Kirim reaction ke pesan",
+                  "value": {
+                    "sessionId": "sess_001",
+                    "to": "6281234567890",
+                    "reaction": {
+                      "text": "👍",
+                      "messageId": "3EB0A1B2C3D4E5F6"
+                    }
+                  }
+                },
+                "poll": {
+                  "summary": "Kirim poll ke grup",
+                  "value": {
+                    "sessionId": "sess_001",
+                    "to": "120363023456789012@g.us",
+                    "poll": {
+                      "name": "Pilih jadwal rapat minggu depan",
+                      "values": [
+                        "Senin 10:00",
+                        "Rabu 14:00",
+                        "Jumat 09:00"
+                      ],
+                      "selectableCount": 1
+                    }
+                  }
+                },
+                "kontak": {
+                  "summary": "Kirim kontak (vCard)",
+                  "value": {
+                    "sessionId": "sess_001",
+                    "to": "6281234567890",
+                    "contacts": {
+                      "displayName": "Kontak Customer Service",
+                      "contacts": [
+                        {
+                          "name": "Ibu Sari",
+                          "phone": "628111222333",
+                          "organization": "RS Sehat"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "quoted_mentions": {
+                  "summary": "Balas pesan (quoted) dengan mention",
+                  "value": {
+                    "sessionId": "sess_001",
+                    "to": "120363023456789012@g.us",
+                    "text": "Mohon konfirmasi kehadirannya ya",
+                    "quoted": {
+                      "messageId": "3EB0F6E5D4C3B2A1",
+                      "chatJid": "120363023456789012@g.us"
+                    },
+                    "mentions": [
+                      "6281234567890",
+                      "6289876543210"
+                    ]
+                  }
+                }
               }
             }
           }
@@ -772,7 +872,7 @@
             "description": "Rate limit"
           }
         },
-        "description": "Kirim pesan. Berhasil dikirim → pesan di-persist ke DB (riwayat sinkron di semua device) dan event `message.sent` (berisi chatJid & phone) di-broadcast ke WebSocket/SSE client."
+        "description": "Kirim pesan. Satu endpoint untuk semua jenis pesan — pilih contoh sesuai kebutuhan: teks saja, media (+caption), location saja, reaction, poll, kontak (vCard), atau quoted + mention. Berhasil dikirim → pesan di-persist ke DB (riwayat sinkron di semua device) dan event `message.sent` (berisi chatJid & phone) di-broadcast ke WebSocket/SSE client."
       }
     },
     "/message/delete": {

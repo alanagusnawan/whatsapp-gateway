@@ -29,18 +29,39 @@ export const messageStore = {
 
     const values = messages.map((m) => {
       const msg = m.message || {}
-      const text = msg.conversation
+      const pollMsg = msg.pollCreationMessage || msg.pollCreationMessageV2 || msg.pollCreationMessageV3
+      const locMsg = msg.locationMessage || msg.liveLocationMessage
+      const contactMsg = msg.contactMessage || msg.contactsArrayMessage
+      const protocolMsg = msg.protocolMessage
+
+      let text = msg.conversation
         || msg.extendedTextMessage?.text
         || msg.imageMessage?.caption
         || msg.videoMessage?.caption
         || msg.documentMessage?.caption
         || ""
+
+      if (!text && pollMsg) {
+        const pollName = pollMsg.name || "Polling"
+        const options = (pollMsg.options || []).map((o: any, idx: number) => `${idx + 1}. ${o.optionName}`).join("\n")
+        text = `📊 ${pollName}\n${options}`
+      } else if (!text && locMsg) {
+        text = `📍 https://maps.google.com/?q=${locMsg.degreesLatitude},${locMsg.degreesLongitude}`
+      } else if (!text && contactMsg) {
+        text = `👤 Kontak: ${contactMsg.displayName || "Kontak"}`
+      } else if (!text && protocolMsg?.ephemeralExpiration) {
+        text = `⏱️ Pesan sementara diatur ke ${protocolMsg.ephemeralExpiration / 86400} hari`
+      }
+
       const type = msg.imageMessage ? "image"
         : msg.videoMessage ? "video"
         : msg.documentMessage ? "document"
         : msg.audioMessage ? "audio"
         : msg.stickerMessage ? "sticker"
-        : msg.locationMessage ? "location"
+        : locMsg ? "location"
+        : pollMsg ? "poll"
+        : contactMsg ? "contact"
+        : protocolMsg ? "protocol"
         : "text"
 
       const rawChatJid = m.key?.remoteJid || ""

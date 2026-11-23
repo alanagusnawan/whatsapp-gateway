@@ -29,7 +29,29 @@ export const messageService = {
     const chatJid = payload.to.includes("@")
       ? payload.to
       : `${payload.to.replace(/[^0-9]/g, "")}@s.whatsapp.net`
-    const text = payload.text || payload.caption || ""
+
+    let type = payload.mediaType || "text"
+    let text = payload.text || payload.caption || ""
+
+    if (payload.poll) {
+      type = "poll"
+      text = `📊 ${payload.poll.name}\n${payload.poll.values.map((v, i) => `${i + 1}. ${v}`).join("\n")}`
+    } else if (payload.location) {
+      type = "location"
+      text = `📍 https://maps.google.com/?q=${payload.location.lat},${payload.location.lng}`
+    } else if (payload.contacts) {
+      type = "contact"
+      text = `👤 Kontak: ${payload.contacts.displayName}\n${payload.contacts.contacts.map((c) => `${c.name}: ${c.phone}`).join("\n")}`
+    } else if (payload.pin) {
+      type = "pin"
+      text = payload.pin.type === 1 ? "📌 Pesan disematkan" : "📌 Sematan pesan dilepas"
+    } else if (payload.disappearingMessages) {
+      type = "protocol"
+      text = payload.disappearingMessages.enabled
+        ? `⏱️ Pesan sementara diaktifkan (${(payload.disappearingMessages.duration || 86400) / 86400} hari)`
+        : "⏱️ Pesan sementara dimatikan"
+    }
+
     const timestamp = Math.floor(Date.now() / 1000)
     try {
       await messageStore.insert(payload.sessionId, {
@@ -37,10 +59,10 @@ export const messageService = {
         chatJid,
         fromJid: chatJid,
         fromMe: true,
-        type: payload.mediaType || "text",
+        type,
         text,
         timestamp,
-        raw: null,
+        raw: payload.poll ? { poll: payload.poll } : payload.location ? { location: payload.location } : null,
       })
       await chatStore.updateLastMessage(payload.sessionId, chatJid, text, timestamp)
       if (!chatJid.endsWith("@g.us")) {

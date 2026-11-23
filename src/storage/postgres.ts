@@ -88,6 +88,16 @@ export async function initDb(): Promise<postgres.Sql> {
   await sql`CREATE INDEX IF NOT EXISTS idx_wa_messages_chat ON wa_messages (session_id, chat_jid, timestamp DESC)`
   await sql`CREATE INDEX IF NOT EXISTS idx_wa_contacts_phone ON wa_contacts (session_id, phone)`
 
+  await sql`CREATE TABLE IF NOT EXISTS baileys_auth_states (
+    session_id TEXT NOT NULL,
+    key_id TEXT NOT NULL,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (session_id, key_id)
+  )`
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_baileys_auth_session ON baileys_auth_states (session_id)`
+
   await sql`CREATE TABLE IF NOT EXISTS message_templates (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

@@ -54,6 +54,35 @@ export const messageService = {
 
     const timestamp = Math.floor(Date.now() / 1000)
     try {
+      let rawData: any = payload.poll ? { poll: payload.poll } : payload.location ? { location: payload.location } : null
+
+      if (payload.quoted) {
+        const origMsg = await messageStore.getById(payload.sessionId, payload.quoted.messageId)
+        let quotedMessageContent = origMsg?.raw
+        if (!quotedMessageContent || Object.keys(quotedMessageContent).length === 0) {
+          quotedMessageContent = { conversation: origMsg?.text || payload.quoted.text || "" }
+        }
+
+        const contextInfo = {
+          stanzaId: payload.quoted.messageId,
+          participant: origMsg?.from_jid || origMsg?.chat_jid || payload.quoted.chatJid,
+          quotedMessage: quotedMessageContent,
+        }
+
+        if (type === "text" || !type) {
+          rawData = {
+            extendedTextMessage: {
+              text,
+              contextInfo,
+            },
+          }
+        } else if (rawData) {
+          rawData.contextInfo = contextInfo
+        } else {
+          rawData = { contextInfo }
+        }
+      }
+
       await messageStore.insert(payload.sessionId, {
         messageId: result.id,
         chatJid,
@@ -62,7 +91,7 @@ export const messageService = {
         type,
         text,
         timestamp,
-        raw: payload.poll ? { poll: payload.poll } : payload.location ? { location: payload.location } : null,
+        raw: rawData,
       })
       await chatStore.updateLastMessage(payload.sessionId, chatJid, text, timestamp)
       if (!chatJid.endsWith("@g.us")) {

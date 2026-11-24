@@ -73,7 +73,7 @@ export interface SendMessagePayload {
   mentions?: string[]
 
   // Quoting a message
-  quoted?: { messageId: string; chatJid: string }
+  quoted?: { messageId: string; chatJid: string; text?: string }
 
   // Disappear this specific message
   ephemeralExpiration?: number

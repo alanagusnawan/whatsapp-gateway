@@ -138,6 +138,32 @@ export const messageStore = {
     return row?.count || 0
   },
 
+  async getById(sessionId: string, messageId: string): Promise<MessageRow | null> {
+    const sql = getDb()
+    const rows = await sql<MessageRow[]>`SELECT m.*,
+        COALESCE(c.phone, '') AS chat_phone,
+        COALESCE(s.phone, '') AS sender_phone
+      FROM wa_messages m
+      LEFT JOIN wa_chats c ON c.session_id = m.session_id AND c.jid = m.chat_jid
+      LEFT JOIN wa_contacts s ON s.session_id = m.session_id AND s.jid = m.from_jid
+      WHERE m.session_id = ${sessionId} AND m.message_id = ${messageId}
+      LIMIT 1`
+    if (!rows || rows.length === 0) return null
+    const r = rows[0] as any
+    return {
+      session_id: r.session_id,
+      message_id: r.message_id,
+      chat_jid: r.chat_jid,
+      from_jid: r.from_jid,
+      from_me: r.from_me,
+      message_type: r.message_type,
+      text: r.text,
+      timestamp: r.timestamp,
+      raw: r.raw,
+      phone: r.sender_phone || r.chat_phone || phoneFromJid(r.from_jid) || phoneFromJid(r.chat_jid),
+    }
+  },
+
   // Pindahkan pesan dari jid lama (LID) ke jid kanonik (PN)
   async mergeJid(sessionId: string, fromJid: string, toJid: string): Promise<void> {
     if (fromJid === toJid) return

@@ -15,6 +15,8 @@ import {
   getContentType,
   Browsers,
   proto,
+  type WAMessage,
+  type MiscMessageGenerationOptions,
 } from "@whiskeysockets/baileys"
 import type { Boom } from "@hapi/boom"
 import pino from "pino"
@@ -601,15 +603,34 @@ export class BaileysEngine extends EventEmitter {
         : buildJid(payload.to)
 
     // Build options (quoted, mentions, ephemeral)
-    const options: Record<string, any> = {}
+    const options: MiscMessageGenerationOptions = {}
     if (payload.quoted) {
+      const origMsg = await messageStore.getById(this.sessionId, payload.quoted.messageId)
+      const rawChatJid = origMsg?.chat_jid || payload.quoted.chatJid || jid
+      const fromMe = origMsg ? origMsg.from_me : false
+      const isGroup = isJidGroup(rawChatJid)
+
+      let messageContent = origMsg?.raw
+      if (!messageContent || Object.keys(messageContent).length === 0) {
+        if (origMsg?.text) {
+          messageContent = { conversation: origMsg.text }
+        } else if (payload.quoted.text) {
+          messageContent = { conversation: payload.quoted.text }
+        } else {
+          messageContent = { conversation: "" }
+        }
+      }
+
       options.quoted = {
         key: {
-          remoteJid: payload.quoted.chatJid,
+          remoteJid: rawChatJid,
           id: payload.quoted.messageId,
+          fromMe,
+          ...(isGroup && origMsg?.from_jid ? { participant: origMsg.from_jid } : {}),
         },
-        message: {},
-      }
+        message: messageContent,
+        messageTimestamp: origMsg?.timestamp ? Number(origMsg.timestamp) : undefined,
+      } as WAMessage
     }
     if (payload.mentions && payload.mentions.length > 0) {
       options.mentions = payload.mentions.map((p) => buildJid(p))
@@ -708,8 +729,25 @@ export class BaileysEngine extends EventEmitter {
 
     // ── Forward message ───────────────────────────────────────
     else if (payload.forward) {
-      const msgs = await (this.sock as any).store?.messages?.get?.(payload.forward.chatJid)
-      const msg = msgs?.get?.(payload.forward.messageId)
+      let msg: WAMessage | null = null
+      const orig = await messageStore.getById(this.sessionId, payload.forward.messageId)
+      if (orig) {
+        const isGroup = isJidGroup(orig.chat_jid)
+        msg = {
+          key: {
+            remoteJid: orig.chat_jid,
+            id: orig.message_id,
+            fromMe: orig.from_me,
+            ...(isGroup && orig.from_jid ? { participant: orig.from_jid } : {}),
+          },
+          message: orig.raw || (orig.text ? { conversation: orig.text } : {}),
+          messageTimestamp: Number(orig.timestamp) || undefined,
+        } as WAMessage
+      } else {
+        const msgs = await (this.sock as any).store?.messages?.get?.(payload.forward.chatJid)
+        msg = msgs?.get?.(payload.forward.messageId)
+      }
+
       if (msg) {
         result = await this.sock.sendMessage(jid, { forward: msg })
       } else {

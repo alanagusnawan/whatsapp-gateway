@@ -569,9 +569,13 @@ export class BaileysEngine extends EventEmitter {
   }
 
   async disconnect(): Promise<void> {
-    this.sock?.end(undefined)
-    this.sock = null
     this._status = "disconnected"
+    this._reconnectAttempts = this._maxReconnects
+    try {
+      this.sock?.end(undefined)
+    } catch {}
+    this.sock = null
+    this.emit("disconnected", this.sessionId, "manual")
   }
 
   async requestPairingCode(phone: string): Promise<string> {

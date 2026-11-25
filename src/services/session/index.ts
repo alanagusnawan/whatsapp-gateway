@@ -5,7 +5,7 @@ import { EventEmitter } from "node:events"
 import { createEngine } from "../../engines/index.js"
 import type { WhatsAppEngine } from "../../engines/types.js"
 import { sessionStore } from "./store.js"
-import { deletePostgresAuthState } from "../../storage/baileys-auth-store.js"
+import { deletePostgresAuthState, hasPostgresAuthState } from "../../storage/baileys-auth-store.js"
 import { config } from "../../config/index.js"
 import type {
   Session,
@@ -74,10 +74,11 @@ class SessionManager extends EventEmitter {
         this.engines.set(session.id, engine)
         this.setupEngineEvents(engine)
 
-        // Auto-reconnect hanya jika auth state valid di disk.
+        // Auto-reconnect hanya jika auth state valid.
         // Status "disconnected"/"created"/"error" tidak di-auto-reconnect
         // (user mungkin sengaja disconnect).
-        if (autoReconnect.has(session.status) && this.hasAuthState(session)) {
+        const hasAuth = await this.hasAuthState(session)
+        if (autoReconnect.has(session.status) && hasAuth) {
           logger.info(
             { sessionId: session.id, status: session.status },
             "Auto-reconnecting restored session"
@@ -97,15 +98,13 @@ class SessionManager extends EventEmitter {
     )
   }
 
-  private hasAuthState(session: Session): boolean {
-    const dir = resolve(
-      config.storage.dataDir,
-      session.id,
-      session.engine === "baileys" ? "baileys" : "wwjs"
-    )
+  private async hasAuthState(session: Session): Promise<boolean> {
     if (session.engine === "baileys") {
-      // creds.json saja tidak cukup — pastikan creds.me terisi
-      // (koneksi yang gagal di tengah jalan meninggalkan creds tanpa me)
+      const existsInDb = await hasPostgresAuthState(session.id)
+      if (existsInDb) return true
+
+      // Fallback check disk untuk migrasi session lama
+      const dir = resolve(config.storage.dataDir, session.id, "baileys")
       try {
         const creds = JSON.parse(readFileSync(resolve(dir, "creds.json"), "utf8"))
         return !!creds?.me?.id
@@ -113,6 +112,8 @@ class SessionManager extends EventEmitter {
         return false
       }
     }
+
+    const dir = resolve(config.storage.dataDir, session.id, "wwjs")
     try {
       return readdirSync(dir).length > 0
     } catch {
@@ -211,6 +212,7 @@ class SessionManager extends EventEmitter {
     const engine = this.engines.get(sessionId)
     if (!engine) throw new Error(`Session ${sessionId} not found`)
     await engine.disconnect()
+    await sessionStore.updateStatus(sessionId, "disconnected").catch(() => {})
   }
 
   async deleteSession(sessionId: string): Promise<void> {
@@ -229,6 +231,28 @@ class SessionManager extends EventEmitter {
     }
 
     logger.info({ sessionId }, "Session deleted")
+  }
+
+  async getOrRestoreEngine(sessionId: string): Promise<WhatsAppEngine> {
+    let engine = this.engines.get(sessionId)
+    if (engine) return engine
+
+    const session = await sessionStore.getById(sessionId)
+    if (!session) throw new Error(`Session ${sessionId} not found`)
+
+    engine = createEngine(session.engine, session.id, config.storage.dataDir)
+    this.engines.set(session.id, engine)
+    this.setupEngineEvents(engine)
+
+    const hasAuth = await this.hasAuthState(session)
+    if (hasAuth && session.status !== "disconnected") {
+      logger.info({ sessionId }, "Lazy reconnecting restored session engine")
+      engine.connect().catch((err) => {
+        logger.error({ err, sessionId }, "Lazy reconnect failed")
+      })
+    }
+
+    return engine
   }
 
   getEngine(sessionId: string): WhatsAppEngine | undefined {
@@ -255,8 +279,7 @@ class SessionManager extends EventEmitter {
   }
 
   async sendMessage(payload: SendMessagePayload): Promise<{ id: string }> {
-    const engine = this.engines.get(payload.sessionId)
-    if (!engine) throw new Error(`Session ${payload.sessionId} not found`)
+    const engine = await this.getOrRestoreEngine(payload.sessionId)
     if (engine.getStatus() !== "connected") {
       throw new Error(`Session ${payload.sessionId} is not connected`)
     }
@@ -286,8 +309,7 @@ class SessionManager extends EventEmitter {
   }
 
   async isRegistered(sessionId: string, phone: string): Promise<boolean> {
-    const engine = this.engines.get(sessionId)
-    if (!engine) throw new Error(`Session ${sessionId} not found`)
+    const engine = await this.getOrRestoreEngine(sessionId)
     if (engine.getStatus() !== "connected") {
       throw new Error(`Session ${sessionId} is not connected`)
     }

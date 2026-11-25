@@ -157,3 +157,20 @@ export async function deletePostgresAuthState(sessionId: string): Promise<void> 
   const sql = getDb()
   await sql`DELETE FROM baileys_auth_states WHERE session_id = ${sessionId}`
 }
+
+export async function hasPostgresAuthState(sessionId: string): Promise<boolean> {
+  try {
+    const sql = getDb()
+    const rows = await sql<{ value: string }[]>`
+      SELECT value FROM baileys_auth_states
+      WHERE session_id = ${sessionId} AND key_id = 'creds'
+    `
+    if (!rows.length || !rows[0].value) return false
+    const creds = JSON.parse(rows[0].value, BufferJSON.reviver)
+    return !!creds?.me?.id
+  } catch (err) {
+    logger.error({ err, sessionId }, "Failed to check postgres auth state")
+    return false
+  }
+}
+

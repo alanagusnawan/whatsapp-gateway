@@ -6,17 +6,7 @@ import type { SendMessagePayload } from "../../schemas/index.js"
 import { logger } from "../../utils/logger.js"
 
 export const messageService = {
-  async send(payload: SendMessagePayload): Promise<{ id: string }> {
-    const check = rateLimiter.check(payload.sessionId)
-    if (!check.allowed) {
-      throw new Error(check.reason)
-    }
-
-    const delay = rateLimiter.getNextDelay(payload.sessionId)
-    if (delay > 0) {
-      await new Promise((r) => setTimeout(r, delay))
-    }
-
+  async executeSend(payload: SendMessagePayload): Promise<{ id: string }> {
     logger.info(
       { sessionId: payload.sessionId, to: payload.to },
       "Sending message"
@@ -102,5 +92,19 @@ export const messageService = {
     }
 
     return result
+  },
+
+  async send(payload: SendMessagePayload): Promise<{ id: string }> {
+    const check = rateLimiter.check(payload.sessionId)
+    if (!check.allowed) {
+      throw new Error(check.reason)
+    }
+
+    const delay = rateLimiter.getNextDelay(payload.sessionId)
+    if (delay > 0) {
+      await new Promise((r) => setTimeout(r, delay))
+    }
+
+    return this.executeSend(payload)
   },
 }

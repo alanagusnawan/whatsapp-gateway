@@ -603,7 +603,7 @@ export class BaileysEngine extends EventEmitter {
         : buildJid(payload.to)
 
     // Build options (quoted, mentions, ephemeral)
-    const options: MiscMessageGenerationOptions = {}
+    const options: MiscMessageGenerationOptions & { mentions?: string[] } = {}
     if (payload.quoted) {
       const origMsg = await messageStore.getById(this.sessionId, payload.quoted.messageId)
       const rawChatJid = origMsg?.chat_jid || payload.quoted.chatJid || jid

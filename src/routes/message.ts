@@ -1,5 +1,6 @@
 import { Elysia, t } from "elysia"
 import { messageService } from "../services/message/index.js"
+import { messageQueue } from "../services/message/queue.js"
 import { sessionManager } from "../services/session/index.js"
 
 const messageBody = t.Object({
@@ -100,17 +101,42 @@ export const messageRoutes = new Elysia({ prefix: "/message" })
       }
 
       try {
-        const result = await messageService.send({ ...body, to })
-        return { success: true, messageId: result.id }
+        const job = await messageQueue.enqueue({ ...body, to })
+        set.status = 202
+        return {
+          success: true,
+          queued: true,
+          jobId: job.id,
+          status: job.status,
+          message: "Message queued for delivery",
+        }
       } catch (err: any) {
         if (err.message?.includes("not found")) set.status = 404
         else if (err.message?.includes("not connected")) set.status = 503
-        else if (err.message?.includes("Rate limit") || err.message?.includes("Wait")) set.status = 429
         else set.status = 500
         return { success: false, error: err.message }
       }
     },
     { body: messageBody }
+  )
+  .get(
+    "/job/:jobId",
+    async ({ params, set }) => {
+      const job = await messageQueue.getJob(params.jobId)
+      if (!job) {
+        set.status = 404
+        return { success: false, error: "Job not found" }
+      }
+      return {
+        success: true,
+        jobId: job.id,
+        status: job.status,
+        messageId: job.messageId,
+        error: job.error,
+        createdAt: job.createdAt,
+        processedAt: job.processedAt,
+      }
+    }
   )
   .post(
     "/delete",
